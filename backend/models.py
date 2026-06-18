@@ -34,7 +34,11 @@ class SearchJob(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     focus_areas: str = "[]"  # JSON array
     status: str = "pending"  # pending, running, complete, failed
+    current_phase: Optional[str] = None
+    phases_done: str = "[]"   # JSON list of completed phase names
     grants_found: int = 0
+    searches_made: int = 0
+    log_entries: str = "[]"   # JSON list of {ts, msg, level}
     error: Optional[str] = None
     created_at: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
     completed_at: Optional[str] = None

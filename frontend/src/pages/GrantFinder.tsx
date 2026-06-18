@@ -1,8 +1,29 @@
 import { useState, useEffect, useRef } from "react";
-import { Search, Loader2, CheckCircle, XCircle, Plus } from "lucide-react";
+import {
+  Search,
+  Loader2,
+  CheckCircle,
+  XCircle,
+  Plus,
+  Activity,
+} from "lucide-react";
 import { api } from "../api";
 import GrantCard from "../components/GrantCard";
-import type { Grant, SearchJob } from "../types";
+import type { Grant } from "../types";
+
+interface LogEntry {
+  ts: string;
+  msg: string;
+  level: string;
+}
+
+interface LogResponse {
+  job_id: number;
+  status: string;
+  grants_found: number;
+  total_entries: number;
+  entries: LogEntry[];
+}
 
 const DEFAULT_AREAS = [
   "tree planting",
@@ -16,14 +37,34 @@ const DEFAULT_AREAS = [
   "net zero",
 ];
 
+
+function levelClasses(level: string) {
+  switch (level) {
+    case "phase":
+      return "text-leaf-300 font-bold";
+    case "found":
+      return "text-emerald-400 font-semibold";
+    case "error":
+      return "text-red-400";
+    default:
+      return "text-gray-400";
+  }
+}
+
 export default function GrantFinder() {
   const [selected, setSelected] = useState<string[]>(DEFAULT_AREAS);
   const [custom, setCustom] = useState("");
-  const [job, setJob] = useState<SearchJob | null>(null);
-  const [polling, setPolling] = useState(false);
+  const [jobStatus, setJobStatus] = useState<string>("idle");
+  const [grantsFound, setGrantsFound] = useState(0);
+  const [logEntries, setLogEntries] = useState<LogEntry[]>([]);
+  const logCursorRef = useRef(0);
   const [newGrants, setNewGrants] = useState<Grant[]>([]);
-  const [error, setError] = useState<string | null>(null);
   const pollRef = useRef<number | null>(null);
+  const logBottomRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    logBottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [logEntries]);
 
   useEffect(() => {
     return () => {
@@ -45,59 +86,63 @@ export default function GrantFinder() {
     setCustom("");
   };
 
-  const startSearch = async () => {
-    if (selected.length === 0) return;
-    setError(null);
-    setNewGrants([]);
-
+  const pollLog = async (id: number, cursor: number) => {
     try {
-      const res = await api.startSearch(selected);
-      const initialJob: SearchJob = {
-        job_id: res.job_id,
-        status: "pending",
-        grants_found: 0,
-        error: null,
-        created_at: new Date().toISOString(),
-        completed_at: null,
-      };
-      setJob(initialJob);
-      setPolling(true);
+      const res: LogResponse = await fetch(`/api/search/${id}/log?since=${cursor}`).then((r) =>
+        r.json()
+      );
+      if (res.entries.length > 0) {
+        setLogEntries((prev) => [...prev, ...res.entries]);
+        logCursorRef.current = res.total_entries;
+      }
+      setGrantsFound(res.grants_found);
 
-      pollRef.current = window.setInterval(async () => {
-        const status = await api.getSearchStatus(res.job_id);
-        setJob(status);
-        if (status.status === "complete" || status.status === "failed") {
-          clearInterval(pollRef.current!);
-          setPolling(false);
-          if (status.status === "complete" && status.grants_found > 0) {
-            const all = await api.listGrants();
-            setNewGrants(all.slice(0, status.grants_found));
-          }
-          if (status.error) setError(status.error);
+      if (res.status === "complete" || res.status === "failed") {
+        clearInterval(pollRef.current!);
+        setJobStatus(res.status);
+        if (res.status === "complete") {
+          const all = await api.listGrants();
+          setNewGrants(all.slice(0, Math.min(res.grants_found, all.length)));
         }
-      }, 3000);
+      }
     } catch (e) {
-      setError(String(e));
+      // polling errors are transient — keep going
     }
   };
 
-  const isSearching = job && (job.status === "pending" || job.status === "running");
+  const startSearch = async () => {
+    if (selected.length === 0) return;
+    setNewGrants([]);
+    setLogEntries([]);
+    logCursorRef.current = 0;
+    setGrantsFound(0);
+
+    try {
+      const res = await api.startSearch(selected);
+      setJobStatus("running");
+
+      pollRef.current = window.setInterval(async () => {
+        await pollLog(res.job_id, logCursorRef.current);
+      }, 4000);
+    } catch (_e) {
+      setJobStatus("failed");
+    }
+  };
+
+  const isSearching = jobStatus === "running" || jobStatus === "pending";
 
   return (
     <div>
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-leaf-900">Find Grants</h1>
         <p className="text-gray-500 mt-1">
-          The AI will search the web for grants matching your chosen topics.
+          The AI runs a deep, multi-phase search across the entire UK environmental grant
+          landscape. It takes a while — that's deliberate. Thoroughness over speed.
         </p>
       </div>
 
       <div className="bg-white rounded-xl border border-leaf-200 p-6 shadow-sm mb-6">
         <h2 className="font-semibold text-gray-800 mb-3">Choose Focus Areas</h2>
-        <p className="text-sm text-gray-500 mb-4">
-          Select the topics you want to find grants for. You can also add your own.
-        </p>
-
         <div className="flex flex-wrap gap-2 mb-4">
           {selected.map((area) => (
             <button
@@ -138,7 +183,7 @@ export default function GrantFinder() {
 
         <button
           onClick={startSearch}
-          disabled={!!isSearching || selected.length === 0}
+          disabled={isSearching || selected.length === 0}
           className="flex items-center gap-2 px-6 py-2.5 bg-leaf-600 text-white rounded-lg font-medium hover:bg-leaf-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {isSearching ? (
@@ -146,37 +191,55 @@ export default function GrantFinder() {
           ) : (
             <Search className="w-4 h-4" />
           )}
-          {isSearching ? "Searching…" : "Search for Grants"}
+          {isSearching ? "Researching…" : "Start Deep Research"}
         </button>
+
+        {!isSearching && jobStatus === "idle" && (
+          <p className="text-xs text-gray-400 mt-3">
+            Covers 10 research phases: National Lottery · Government · Energy schemes ·
+            Wildlife charities · Norfolk funders · Major trusts · Corporate CSR · and more.
+          </p>
+        )}
       </div>
 
-      {/* Status panel */}
-      {job && (
-        <div
-          className={`rounded-xl border p-4 mb-6 flex items-center gap-3 ${
-            job.status === "complete"
-              ? "bg-leaf-50 border-leaf-300"
-              : job.status === "failed"
-                ? "bg-red-50 border-red-300"
-                : "bg-yellow-50 border-yellow-300"
-          }`}
-        >
-          {polling ? (
-            <Loader2 className="w-5 h-5 text-yellow-600 animate-spin shrink-0" />
-          ) : job.status === "complete" ? (
-            <CheckCircle className="w-5 h-5 text-leaf-600 shrink-0" />
-          ) : (
-            <XCircle className="w-5 h-5 text-red-500 shrink-0" />
-          )}
-          <div>
-            <p className="font-medium text-sm">
-              {job.status === "pending" && "Search queued — starting shortly…"}
-              {job.status === "running" && "Searching the web for grants… this may take a minute."}
-              {job.status === "complete" &&
-                `Search complete! Found ${job.grants_found} new grant${job.grants_found !== 1 ? "s" : ""}.`}
-              {job.status === "failed" && "Search failed."}
-            </p>
-            {error && <p className="text-xs text-red-600 mt-1">{error}</p>}
+      {/* Live research log */}
+      {(isSearching || logEntries.length > 0) && (
+        <div className="bg-gray-950 rounded-xl border border-gray-800 mb-6 overflow-hidden">
+          <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-800">
+            <Activity className="w-4 h-4 text-leaf-400" />
+            <span className="text-sm font-medium text-gray-300">Research Log</span>
+            {isSearching && (
+              <span className="ml-auto flex items-center gap-1.5 text-xs text-yellow-400">
+                <Loader2 className="w-3 h-3 animate-spin" /> Researching…
+              </span>
+            )}
+            {jobStatus === "complete" && (
+              <span className="ml-auto flex items-center gap-1.5 text-xs text-emerald-400">
+                <CheckCircle className="w-3 h-3" /> Complete — {grantsFound} grants found
+              </span>
+            )}
+            {jobStatus === "failed" && (
+              <span className="ml-auto flex items-center gap-1.5 text-xs text-red-400">
+                <XCircle className="w-3 h-3" /> Failed
+              </span>
+            )}
+          </div>
+          <div className="p-4 font-mono text-xs h-64 overflow-y-auto space-y-0.5">
+            {logEntries.length === 0 && (
+              <div className="text-gray-600 italic">Starting up…</div>
+            )}
+            {logEntries.map((entry, i) => (
+              <div key={i} className={`leading-relaxed ${levelClasses(entry.level)}`}>
+                <span className="text-gray-600 mr-2">
+                  {new Date(entry.ts).toLocaleTimeString()}
+                </span>
+                {entry.msg}
+              </div>
+            ))}
+            {isSearching && (
+              <div className="text-gray-600 animate-pulse">▋</div>
+            )}
+            <div ref={logBottomRef} />
           </div>
         </div>
       )}
@@ -185,7 +248,7 @@ export default function GrantFinder() {
       {newGrants.length > 0 && (
         <div>
           <h2 className="font-semibold text-gray-800 mb-3">
-            Newly Found Grants ({newGrants.length})
+            Grants Found ({newGrants.length})
           </h2>
           <div className="grid gap-4 md:grid-cols-2">
             {newGrants.map((grant) => (

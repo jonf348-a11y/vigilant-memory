@@ -20,7 +20,7 @@ from models import (
     SearchRequest,
     ChatRequest,
 )
-from agent import search_grants_sync, chat_with_assistant
+from agent import research_grants_deep, chat_with_assistant, PHASES
 
 
 @asynccontextmanager
@@ -46,6 +46,62 @@ app.add_middleware(
 
 # --- Background task ---
 
+def _append_log(job_id: int, message: str, level: str):
+    """Thread-safe log append — opens its own session to avoid conflicts."""
+    with Session(engine) as s:
+        job = s.get(SearchJob, job_id)
+        if not job:
+            return
+        entries = json.loads(job.log_entries or "[]")
+        entries.append({
+            "ts": datetime.utcnow().isoformat(),
+            "msg": message,
+            "level": level,
+        })
+        # Keep last 500 log lines to avoid unbounded growth
+        job.log_entries = json.dumps(entries[-500:])
+        s.add(job)
+        s.commit()
+
+
+def _save_grants_batch(grants: list[dict]) -> int:
+    """Save a list of raw grant dicts to the DB, skipping duplicates."""
+    count = 0
+    with Session(engine) as s:
+        for g in grants:
+            existing = s.exec(
+                select(Grant).where(
+                    Grant.title == g.get("title", ""),
+                    Grant.funder == g.get("funder", ""),
+                )
+            ).first()
+            if existing:
+                continue
+            focus_list = g.get("focus_areas", [])
+            grant = Grant(
+                title=g.get("title", "Untitled"),
+                funder=g.get("funder", "Unknown"),
+                description=g.get("description", ""),
+                url=g.get("url"),
+                deadline=g.get("deadline"),
+                max_amount=_safe_int(g.get("max_amount")),
+                min_amount=_safe_int(g.get("min_amount")),
+                focus_areas=json.dumps(focus_list if isinstance(focus_list, list) else []),
+                eligibility_notes=g.get("eligibility_notes"),
+            )
+            s.add(grant)
+            count += 1
+        s.commit()
+    return count
+
+
+def _safe_int(value) -> Optional[int]:
+    try:
+        return int(value) if value is not None else None
+    except (TypeError, ValueError):
+        return None
+
+
 def run_grant_search(job_id: int, focus_areas: list[str]):
     with Session(engine) as session:
         job = session.get(SearchJob, job_id)
@@ -55,51 +111,34 @@ def run_grant_search(job_id: int, focus_areas: list[str]):
         session.add(job)
         session.commit()
 
-        try:
-            grants = search_grants_sync(focus_areas)
+    total_saved = 0
 
-            count = 0
-            for g in grants:
-                # Avoid exact duplicates by title+funder
-                existing = session.exec(
-                    select(Grant).where(
-                        Grant.title == g.get("title", ""),
-                        Grant.funder == g.get("funder", ""),
-                    )
-                ).first()
-                if existing:
-                    continue
+    def progress(message: str, level: str = "info"):
+        nonlocal total_saved
+        _append_log(job_id=job_id, message=message, level=level)
 
-                focus_list = g.get("focus_areas", [])
-                grant = Grant(
-                    title=g.get("title", "Untitled"),
-                    funder=g.get("funder", "Unknown"),
-                    description=g.get("description", ""),
-                    url=g.get("url"),
-                    deadline=g.get("deadline"),
-                    max_amount=g.get("max_amount"),
-                    min_amount=g.get("min_amount"),
-                    focus_areas=json.dumps(focus_list if isinstance(focus_list, list) else []),
-                    eligibility_notes=g.get("eligibility_notes"),
-                )
-                session.add(grant)
-                count += 1
+    try:
+        grants = research_grants_deep(focus_areas, progress)
+        total_saved = _save_grants_batch(grants)
 
-            session.commit()
+        with Session(engine) as s:
+            job = s.get(SearchJob, job_id)
+            if job:
+                job.status = "complete"
+                job.grants_found = total_saved
+                job.completed_at = datetime.utcnow().isoformat()
+                s.add(job)
+                s.commit()
 
-            job = session.get(SearchJob, job_id)
-            job.status = "complete"
-            job.grants_found = count
-            job.completed_at = datetime.utcnow().isoformat()
-            session.add(job)
-            session.commit()
-
-        except Exception as e:
-            job = session.get(SearchJob, job_id)
-            job.status = "failed"
-            job.error = str(e)
-            session.add(job)
-            session.commit()
+    except Exception as e:
+        _append_log(job_id=job_id, message=f"Fatal error: {e}", level="error")
+        with Session(engine) as s:
+            job = s.get(SearchJob, job_id)
+            if job:
+                job.status = "failed"
+                job.error = str(e)
+                s.add(job)
+                s.commit()
 
 
 # --- Grant search endpoints ---
@@ -135,6 +174,32 @@ def get_search_status(job_id: int, session: Session = Depends(get_session)):
         "created_at": job.created_at,
         "completed_at": job.completed_at,
     }
+
+
+@app.get("/api/search/{job_id}/log")
+def get_search_log(
+    job_id: int,
+    since: int = 0,
+    session: Session = Depends(get_session),
+):
+    """Return log entries for a search job, optionally from a given index."""
+    job = session.get(SearchJob, job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    entries = json.loads(job.log_entries or "[]")
+    return {
+        "job_id": job.id,
+        "status": job.status,
+        "grants_found": job.grants_found,
+        "total_entries": len(entries),
+        "entries": entries[since:],
+    }
+
+
+@app.get("/api/search/phases/list")
+def list_phases():
+    """Return the list of research phases."""
+    return [{"name": p["name"], "label": p["label"]} for p in PHASES]
 
 
 # --- Grant CRUD endpoints ---
