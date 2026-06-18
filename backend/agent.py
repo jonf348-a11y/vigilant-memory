@@ -79,6 +79,19 @@ Track record / assets they can mention:
   • Community engagement already under way
   • Potential to work with Hethersett Academy and other local schools
 
+Local development context (important for specific funding streams):
+  • Major housing development under way in Hethersett by Taylor Wimpey and Persimmon —
+    Section 106 agreements and CIL (Community Infrastructure Levy) monies flow from
+    these to South Norfolk Council and some portion to the parish
+  • Significant road scheme near Hethersett (A47 / Norwich Western Link / NDR corridor) —
+    National Highways and Norfolk County Council hold mitigation and community funds
+    tied to affected communities
+  • Hethersett sits within the offshore wind corridor — Norfolk Vanguard, Norfolk Boreas,
+    Hornsea (Ørsted), East Anglia ONE/TWO (ScottishPower), Dudgeon, Sheringham Shoal,
+    Race Bank and other offshore wind projects off the Norfolk coast all carry statutory
+    community benefit fund obligations; Hethersett is within the typical 35-mile benefit
+    zone for several of these
+
 == END APPLICANT PROFILE ==
 """
 
@@ -292,10 +305,74 @@ Funders and programmes to research exhaustively:
 - Norfolk & Waveney Integrated Care System — if health/environment overlap
 - Active Norfolk — physical activity/active travel grants with green angle
 - Sport England — green infrastructure/active space grants
-- Highways England / National Highways — community mitigation/green funds
+- Active Norfolk — physical activity/active travel grants with green angle
+- Sport England — green infrastructure/active space grants
 - Network Rail community funds (if near railway)
-- Homes England — place-based community environment improvements
 - Armed Forces Covenant Fund Trust (if any military connection in village)
+
+OFFSHORE WIND COMMUNITY BENEFIT FUNDS — HIGH PRIORITY:
+Hethersett sits within the benefit zone of multiple offshore wind projects off the Norfolk
+coast. Each project carries a statutory community benefit fund obligation. Research ALL of:
+- Ørsted Hornsea Three (H3) Community Benefit Fund — off Norfolk/Lincolnshire, one of the
+  largest wind farms in the world; what is the annual community pot? Who can apply?
+  What is the geographic eligibility zone — does Hethersett / South Norfolk qualify?
+- Ørsted Hornsea Four (H4) — any associated community fund announced yet?
+- Norfolk Vanguard Offshore Wind Farm (Vattenfall) — community benefit fund details,
+  eligibility area, how to apply, current round status
+- Norfolk Boreas Offshore Wind Farm (Vattenfall) — same questions
+- Dudgeon Offshore Wind Farm (Statoil/Equinor) — community fund, how to apply
+- Sheringham Shoal Offshore Wind Farm (Equinor / Scatec) — community benefit fund
+- Race Bank Offshore Wind Farm (Ørsted) — community fund details
+- East Anglia ONE (ScottishPower Renewables) — community benefit fund, Norfolk eligibility
+- East Anglia TWO (ScottishPower Renewables) — same
+- East Anglia Hub / THREE — if under construction, any community funds announced?
+- Dudgeon Extended (if applicable) — community fund
+- Triton Knoll (RWE) — near Lincolnshire/Norfolk border, check eligibility for South Norfolk
+- Search broadly: "offshore wind community benefit fund Norfolk 2024 2025 apply"
+- Search: "Vattenfall Norfolk community fund apply"
+- Search: "Ørsted Hornsea community benefit fund apply 2024"
+
+For each offshore wind fund, establish: fund size per year, geographic eligibility area
+(typically stated in miles from landfall or grid connection point), grant size range,
+application process, and current open/closed status.
+
+NATIONAL HIGHWAYS / MAJOR ROAD SCHEME FUNDS:
+There are major road schemes near Hethersett — the Norwich Western Link, A47 dualling,
+and NDR-related works. National Highways and Norfolk County Council manage associated
+community and environmental mitigation funds. Research:
+- National Highways A47 Community Fund — communities affected by the A47 improvement
+  scheme; is Hethersett within the eligible area? Grant sizes, application process
+- National Highways Community Fund (general programme) — what communities near major road
+  schemes can apply for; search "National Highways community fund Norfolk apply"
+- National Highways Environmental Mitigation Fund — green/biodiversity projects near
+  road corridors; tree planting, noise bunds, wildflower verges
+- Norwich Western Link community mitigation fund — any community benefit fund associated
+  with this scheme; search "Norwich Western Link community fund environmental"
+- Norfolk County Council road scheme community grants — any parish grants associated
+  with NDR (Northern Distributor Road) successor schemes
+- Search: "A47 dualling community benefit fund Norfolk"
+- Search: "National Highways community fund A47 Norfolk parish"
+- Highways England / National Highways biodiversity net gain fund — projects must
+  compensate for habitat lost to road building; community groups can sometimes deliver
+
+DEVELOPER CONTRIBUTIONS — TAYLOR WIMPEY & PERSIMMON:
+Hethersett has active housing development by Taylor Wimpey and Persimmon. Each planning
+consent generates Section 106 and/or CIL obligations. Research:
+- Section 106 agreements for Taylor Wimpey development(s) in Hethersett — what
+  environmental/community obligations exist? How does the parish access this money?
+  Search: "Taylor Wimpey Hethersett planning section 106 community environment"
+- Section 106 agreements for Persimmon development(s) in Hethersett — same
+  Search: "Persimmon Hethersett planning section 106 environmental contribution"
+- South Norfolk Community Infrastructure Levy (CIL) — how is the local portion
+  (typically 15–25% goes to the parish council) allocated? Can HEAT/HEAG bid for it?
+  Search: "South Norfolk CIL parish council allocation community projects"
+- Taylor Wimpey Community Fund — general programme, but also check if there is a
+  specific Hethersett site-linked fund; search "Taylor Wimpey Hethersett community fund"
+- Persimmon Communities Fund — check for Hethersett or South Norfolk site-specific
+  funding; search "Persimmon Hethersett community fund Norfolk"
+- Homes England Growth Funds — infrastructure alongside new housing
+- Search: "housebuilder community fund environmental South Norfolk 2024 2025"
+- Any planning conditions requiring ecological mitigation deliverable by community groups
 
 Be thorough. Search for each specifically. Norfolk has unique funding streams.
 """,
@@ -358,10 +435,17 @@ Companies and programmes to research:
 - Co-op Foundation — community and climate grants
 - Waitrose & Partners Foundation — local community/environment
 - Morrisons Foundation — community grants
-- Persimmon Communities Fund — are there any Persimmon developments near Hethersett?
-- Taylor Wimpey Community Fund — housing developer community grants Norfolk
-- Bovis Homes / Vistry / Bellway — any development near Hethersett?
-- Barratt Developments community grant (check Norfolk sites)
+- Persimmon Communities Fund — Persimmon IS actively building in Hethersett; search for
+  site-specific or county-level fund; "Persimmon community fund Norfolk Hethersett"
+- Taylor Wimpey Community Fund — Taylor Wimpey IS actively building in Hethersett; search
+  for their community fund programme and any Norfolk/Hethersett allocation;
+  "Taylor Wimpey community fund apply Norfolk"
+- Ørsted UK Community Fund / Hornsea Community Benefit Fund — Ørsted operates Hornsea
+  offshore wind off the Norfolk coast; search specifically for their community benefit
+  fund for Norfolk communities; "Ørsted Hornsea community fund Norfolk apply"
+- Vattenfall Norfolk Vanguard / Norfolk Boreas Community Fund — Vattenfall has two major
+  wind farms off Norfolk; search for their community benefit fund for local groups
+- Bovis Homes / Vistry / Bellway / Barratt — check for any other active sites near Hethersett
 - E.ON Next Community Fund — current round?
 - OVO Foundation/OVO Energy community grants
 - Octopus Energy community grants (Green Octopus?)
@@ -468,11 +552,28 @@ Specifically re-check:
 - Octopus Energy community grants
 - Any 2024/2025 new government net zero community schemes announced
 
+PRIORITY VERIFICATION — LOCAL NORFOLK FUNDS:
+These are high-value, locally specific funds that must be verified carefully:
+- Ørsted Hornsea Three community benefit fund — confirm it exists, the geographic
+  eligibility radius, annual pot size, how to apply; search "Ørsted Hornsea community
+  fund Norfolk" and "Hornsea Three community benefit fund apply"
+- Vattenfall Norfolk Vanguard community benefit fund — confirm details, is Hethersett
+  (South Norfolk) within eligible area?; search "Vattenfall Norfolk Vanguard community fund"
+- National Highways A47 community fund — confirm programme exists for affected Norfolk
+  communities; what can the money fund?; search "National Highways A47 Norfolk community fund"
+- Taylor Wimpey Hethersett — confirm their community fund programme, what Hethersett
+  residents can apply for; search "Taylor Wimpey community fund how to apply 2024 2025"
+- Persimmon Hethersett — confirm their Communities Fund programme details and whether
+  there is a site-specific allocation; search "Persimmon communities fund how to apply"
+- South Norfolk CIL — confirm that the parish council receives a neighbourhood portion
+  and how HEAT/HEAG can access it; search "South Norfolk CIL parish allocation 2024"
+
 Also search for:
 - "environmental grants open now UK 2025 community"
 - "new environmental grants announced 2025 UK government"
 - "net zero community grants England 2025 parish council"
 - "Norfolk community grants environment 2025"
+- "offshore wind community benefit fund Norfolk 2025"
 
 Return a final comprehensive JSON list of all verified grants.
 """,
