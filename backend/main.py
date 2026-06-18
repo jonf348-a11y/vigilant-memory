@@ -1,10 +1,13 @@
 import json
+import os
 from datetime import datetime
 from typing import Optional
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Depends, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from sqlmodel import Session, select
 
 from database import create_db_and_tables, get_session, engine
@@ -316,3 +319,13 @@ def list_grant_sessions(grant_id: int, session: Session = Depends(get_session)):
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+# Serve built React frontend (production)
+_frontend = os.path.join(os.path.dirname(__file__), "frontend_dist")
+if os.path.isdir(_frontend):
+    app.mount("/assets", StaticFiles(directory=os.path.join(_frontend, "assets")), name="assets")
+
+    @app.get("/{full_path:path}")
+    def serve_spa(full_path: str):
+        return FileResponse(os.path.join(_frontend, "index.html"))
