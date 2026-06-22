@@ -41,56 +41,121 @@ APPLICANT_PROFILE = """
 Organisation 1: HEAT — Hethersett Environmental Action Team
   Type: Self-funded committee of Hethersett Parish Council
   Legal status: Parish council committee (counts as public body for many grants)
+  Established: January 2023
+  Contact: office@hethersettparishcouncil.gov.uk
 
 Organisation 2: HEAG — Hethersett Environmental Action Group
   Type: Volunteer working group
-  Project: "Happy Healthy Hethersett" — net zero project run in partnership
-           with OPERGY (an energy services company)
-  Legal status: Community/voluntary group associated with parish council
+  Project: "Happy Healthy Hethersett" — formal net zero action plan developed in
+           partnership with Opergy Net Zero Ltd (energy services company,
+           Manor Farm Barns, Fox Road, Norwich, NR14 7PZ;
+           contact: andy.holyland@opergy.co.uk / chris.blincoe@opergy.co.uk)
+  Academic partner: University of East Anglia — Public Engagement Observatory
+           (UK Energy Research Centre; Dr Jason Chilvers, Prof Tom Hargreaves,
+           Dr Phedeas Stephanides)
+  Legal status: Community/voluntary group backed by parish council
 
 Location: Hethersett, Norfolk, England
-  District: South Norfolk (council merged with Breckland as "South Norfolk and
-            Breckland Council" in 2019 but retains South Norfolk identity)
+  Postcode area: NR9
+  District: South Norfolk (South Norfolk and Breckland Council since 2019)
   County: Norfolk
   Region: East of England / East Anglia
-  Rural/Urban: Large village (~5,000 residents), semi-rural
+  Rural/Urban: Large village — 8,608 residents (2021 census); semi-rural
 
-Project areas they can deliver:
-  • Tree planting on village greens, verges, community land
-  • Hedgerow planting and habitat connectivity
-  • Rewilding small patches of parish-owned land
-  • Community solar panel installations (on public buildings)
-  • Home insulation advice / referral schemes for residents
-  • Heat pump community demonstrations and information days
-  • Biodiversity surveys and species monitoring (birds, insects, plants)
-  • Community education events, workshops, talks
-  • EV charging point feasibility / installation on parish car parks
-  • Net zero action planning for the parish
-  • Carbon footprint measurement for the village
-  • Wildflower meadow creation
-  • Community composting and food waste reduction
-  • School engagement and education programmes
-  • Engagement with local farmers on agri-environment
+== NET ZERO PLAN — KEY FACTS (Opergy, April 2025) ==
 
-Track record / assets they can mention:
-  • Backed by elected parish council (adds credibility and governance)
-  • Partnership with OPERGY on energy work
-  • Active volunteer base
-  • Community engagement already under way
-  • Potential to work with Hethersett Academy and other local schools
+Current emissions: ~29,400 tonnes CO2e/year (3.4 t CO2e per person)
+Net zero target: 2040 (achievable; 2045 contingency)
+Carbon budget remaining: 203 kt CO2e from 2023 to 2100
+Buildings: 3,249 properties heated by fossil fuels (mainly gas); 151 already all-electric
+Vehicles: 3,700+ registered; >90% petrol/diesel
 
-Local development context (important for specific funding streams):
-  • Major housing development under way in Hethersett by Taylor Wimpey and Persimmon —
-    Section 106 agreements and CIL (Community Infrastructure Levy) monies flow from
-    these to South Norfolk Council and some portion to the parish
-  • Significant road scheme near Hethersett (A47 / Norwich Western Link / NDR corridor) —
-    National Highways and Norfolk County Council hold mitigation and community funds
-    tied to affected communities
-  • Hethersett sits within the offshore wind corridor — Norfolk Vanguard, Norfolk Boreas,
-    Hornsea (Ørsted), East Anglia ONE/TWO (ScottishPower), Dudgeon, Sheringham Shoal,
-    Race Bank and other offshore wind projects off the Norfolk coast all carry statutory
-    community benefit fund obligations; Hethersett is within the typical 35-mile benefit
-    zone for several of these
+Key interventions modelled (grants MUST match these real, planned activities):
+  • 100,000 trees planted 2026–2030 (25,000/year); Miyawaki forests in built areas
+  • Rewilding 100 hectares of parish/agricultural land 2030–2040
+  • 10,000 m² of hedgerow planting 2026–2027
+  • 1,000 m² extensive green roofs 2028–2032
+  • Electrified heating in 3,075 homes 2025–2040 (205 heat pumps/year)
+  • Roof insulation for 1,000 properties 2026–2030 (250/year)
+  • Wall insulation for 200 properties 2028–2030
+  • Domestic solar panels on 1,700 homes 2025–2030 (340/year)
+  • Battery storage for 1,700 homes 2025–2030
+  • 3,674 battery electric vehicles by 2040 (245/year)
+  • 30 fast + 10 rapid EV chargers 2025–2028
+  • E-bike rental scheme: 200 shared bikes 2025–2026
+  • 2,000 m of new bike lanes 2026–2027
+  • Community solar farm / community wind turbine (feasibility 2026–2028)
+  • 3 community composting sites 2025–2027
+  • Local beekeeping: 10 hives 2026–2028
+  • Increased allotments: 1,000 m² 2025–2027
+  • Biochar application on 100 km² agricultural land 2030–2035
+  • Reduced tillage on 100 ha 2029–2033
+
+== TRACK RECORD — COMPLETED PROJECTS ==
+
+  • Community Garden: Disused skatepark transformed using National Lottery + Tesco funding;
+    opened May 2023 at King Charles' Coronation event; weekly school visits; twice-weekly
+    work sessions. DEMONSTRATES: ability to deliver NLCF-funded projects.
+  • Wildflower rewilding: Wildflower areas created on Parish Council land; formal beds
+    and planters maintained for pollinators; tree planting at Village Hall field and
+    Memorial Playing Field in last 18 months.
+  • LED street light replacement: Old sodium lamps replaced with LEDs across village
+    (Phase 1 complete Feb 2024, Phase 2 imminent).
+  • Village Hall solar panels: Installation imminent (Nov 2023 → Apr 2025 project).
+  • E-mobility: Beryl bikes introduced to village with 3 docking areas.
+  • Electric bus: First Bus EV route from Wymondham to Norwich via Hethersett (2024).
+  • Formal net zero plan: Opergy Net Zero Pathway (Sept 2024, funded by Norfolk
+    Investment Framework) + Happy Healthy Hethersett Action Plan (April 2025).
+  • UEA partnership: Active research collaboration with UKERC Public Engagement
+    Observatory on community climate engagement mapping.
+  • Governance: Parish Council adopted Green Charter & Biodiversity Action Plan (Oct 2022).
+
+== PROJECT AREAS (GRANT-FUNDABLE ACTIVITIES) ==
+
+  • Tree planting on village greens, verges, Memorial Playing Field, Village Hall field
+  • Miyawaki micro-forests on brownfield/urban land
+  • Hedgerow planting and habitat connectivity across parish
+  • Rewilding patches of parish-owned land with wildflowers, native species
+  • Community orchard and edible hedges on publicly-owned land
+  • Home insulation advice / community referral schemes (ECO4, GBIS targeting)
+  • Heat pump community demonstrations: "Visit a Heat Pump" open days
+  • Heat Geek training for local heating engineers / workforce upskilling
+  • Solar panel and battery storage community showcases
+  • Biodiversity surveys: Big Garden Bird Watch, species transects, school projects
+  • Community education events: People Planet Pint, open days, school STEM visits
+  • EV charging point installation on parish car parks and public land
+  • Cross-pavement EV charging channels for residents without driveways
+  • E-bike and e-scooter rental scheme (partner: Beryl or similar)
+  • Community composting and community food growing (allotments)
+  • Carbon footprint monitoring and community survey (with UEA)
+  • Net zero policy development (building standards, biodiversity policy)
+  • Engagement with local farmers on Countryside Stewardship, SFI, biochar
+  • Community solar farm / community wind turbine feasibility and development
+  • STEM/Climate Ambassador school visits and youth engagement
+  • Active travel: new bike lanes, pedestrianisation, safe routes to school
+
+== LOCAL CONTEXT — KEY FUNDING TRIGGERS ==
+
+  HOUSING DEVELOPMENTS:
+  • Taylor Wimpey active development in Hethersett — S106 + CIL obligations
+  • Persimmon active development in Hethersett — S106 + CIL obligations
+  • South Norfolk CIL: parish council receives 15–25% neighbourhood portion
+
+  ROAD SCHEMES:
+  • A47 dualling / Norwich Western Link / NDR corridor near Hethersett
+  • National Highways and NCC hold environmental mitigation and community funds
+
+  OFFSHORE WIND (35-mile benefit zone — all relevant):
+  • Ørsted Hornsea 3 & 4 (off Norfolk/Lincolnshire)
+  • Vattenfall Norfolk Vanguard & Norfolk Boreas
+  • ScottishPower East Anglia ONE / TWO / Hub
+  • Equinor Dudgeon & Sheringham Shoal
+  • Ørsted Race Bank
+  • RWE Triton Knoll
+
+  ACADEMIC PARTNER:
+  • UEA / UKERC partnership opens access to UKRI, Research England, Horizon grants
+    for community-academic research on public engagement with net zero
 
 == END APPLICANT PROFILE ==
 """
@@ -161,6 +226,24 @@ Programmes to research exhaustively:
 - Tree Health Pilot grants (diseased tree replacement)
 - Hedgerow removal/replacement incentives
 - Blue Carbon / wetland community funds
+- Sustainable Farming Incentive (SFI) — Hethersett has local farmers; are community
+  groups or parish councils able to partner with farmers for SFI-funded hedgerow/
+  tree/biochar projects? Search "SFI community partnership grant"
+- Countryside Stewardship (Higher/Mid Tier) — hedgerow creation, agroforestry, biochar
+  application, reduced tillage; can parish councils/community groups enter agreements?
+  (Hethersett's action plan specifically models 10,000 m² hedgerow + 100 km² biochar)
+- Landscape Recovery Scheme — community-led or farmer-led; South Norfolk eligibility
+- Nature Recovery Projects (NRP) — small grants for nature recovery actions
+- Local Nature Recovery Strategy (LNRS) Norfolk — any associated community funding pots
+- Biodiversity Net Gain (BNG) off-site habitat creation — can HEAT/HEAG act as habitat
+  bank for BNG credits from Taylor Wimpey / Persimmon developments in Hethersett?
+- Natural England BNG habitat bank community grants
+- Community Forest England — East of England / Anglia connections?
+- Miyawaki forest grants — any specific programme for dense urban micro-forests
+  (Hethersett action plan specifically mentions Miyawaki forests in built areas)
+- Green social prescribing pilot — nature-based health interventions community grants
+- Access to Nature Fund (Natural England) — connecting communities with nature
+- Defra Environmental Improvement Plan community implementation grants
 
 Search for each by name. Verify current status. Note if a programme requires a
 landowner applicant vs. allows community groups.
@@ -197,10 +280,35 @@ Programmes to research exhaustively:
 - Local Authority Delivery Scheme (LAD) successors
 - Heat Network Zoning community engagement funds
 - Electric Vehicle Infrastructure funding (OZEV/DVLA community EV grants)
-- On-street Residential Charge Point Scheme (parish council car parks?)
-- Workplace Charging Scheme (if parish office has parking)
-- Active Travel England — e-bike, pedestrian grants with net zero angle
+- LEVI (Local Electric Vehicle Infrastructure) Fund — parish councils / local authorities
+- On-street Residential Charge Point Scheme (ORCS) — parish council car parks eligible?
+- Workplace Charging Scheme — if parish office has parking
+- Active Travel England — e-bike, pedestrian and cycling grants with net zero angle
+- Active Travel England Capability & Ambition Fund — for rural communities
+- Cycling and Walking Investment Strategy (CWIS) community grants
 - Cycle to Work community equivalents
+- Warm Homes: Local Grant (successor to LAD; for councils to deliver to households)
+- Warm Homes Plan — confirm current status and community group role
+- Salix Finance — public sector energy efficiency loans/grants; can parish councils apply?
+- Heat Network Zoning community engagement funds
+- UKRI / Innovate UK Net Zero Living — local net zero demonstration projects
+- Innovate UK Smart Local Energy Systems — community energy projects
+- Community Energy Fund (DESNZ) — solar farm, community wind turbine feasibility grants
+  (Hethersett is planning a community solar farm and community wind turbine)
+- Rural Community Energy Fund (RCEF) — feasibility and development grants for community
+  energy projects in rural areas; RCEF Phase 3 / current successor; up to £40,000 feasibility
+- Community Renewable Energy (CRE) programme — any current iteration
+- Heat Pump Ready programme — community facilitation grants
+- Boiler Upgrade Scheme (BUS) — £7,500 per heat pump; community group can signpost/refer
+  residents; any facilitation grant for community groups promoting BUS uptake?
+- Great British Insulation Scheme (GBIS) — targeting low-EPC homes; community groups
+  can play coordinator role; search for GBIS community facilitator grants
+- ECO4 Flex — community targeting mechanism; any grant to community groups for
+  identifying and referring households
+- Retrofit Works / PAS2035 community facilitation grants
+- Carbon Literacy community engagement grants
+- Miyawaki forest establishment grants — innovative urban forestry grants
+- Community composting infrastructure grants
 
 For each: current status, who can apply, amounts, deadlines, application URL.
 """,
@@ -273,6 +381,24 @@ Organisations and programmes to research:
 - Fields in Trust — green space protection and improvement grants
 - Civic Voice community improvement grants
 - Design Council Place Programme (if redesigning village spaces)
+- Community orchard grants — any specific programme for community orchards / edible hedges
+  (Hethersett action plan includes community orchard and edible hedges on public land)
+- People Planet Pint / community climate events funding — any grant for informal
+  community climate gatherings and events
+- Community allotment and food growing grants — 1,000 m² allotments planned 2025–2027
+- Repair café / zero waste shop grants — plan includes zero waste shop and repair shop
+- Community beekeeping grants — 10 hives planned 2026–2028; search "beekeeping community
+  grant UK 2024 2025"
+- School / youth engagement nature grants — plan includes school trips, STEM visits,
+  outdoor learning; search "school nature visits grant UK community group 2025"
+- Public engagement / citizen science grants — UEA partnership monitors community
+  engagement with net zero; search "citizen science community grant net zero 2025"
+- Place-based community resilience grants — NHS social prescribing, active travel,
+  green spaces combined; the plan has an explicit health/wellbeing angle
+- Sharing economy / library of things grants — plan includes sharing economy and
+  repair shop; search "library of things community grant UK"
+- Community film screening grants — plan mentions film screenings (Wilding, Six Inches
+  of Soil) for public engagement; any grant for community environmental film events?
 
 Search for current open calls, rolling programmes, annual competitions.
 Focus on what's accessible for a volunteer-led parish-council-backed group.
@@ -515,6 +641,21 @@ Programmes and organisations to research:
 - Good Energy community grants
 - Triodos Foundation community grants
 - Ecology Building Society — green community building grants
+- UKRI / Research England community-academic partnership grants — Hethersett has a
+  live partnership with the UEA Public Engagement Observatory (UK Energy Research Centre);
+  search "UKRI community partner net zero grant" and "Research England engaged research fund"
+- NERC (Natural Environment Research Council) community science grants
+- ESRC (Economic and Social Research Council) community partner grants for energy/climate
+- Horizon Europe / Innovate UK community net zero project funding
+- UK Energy Research Centre (UKERC) community partner funding
+- People and Places Fund (UKRI) — community-academic net zero projects
+- Carbon Literacy Trust community grants
+- STEM learning / Climate Ambassador programme grants — for school engagement
+  (Hethersett action plan specifically plans STEM Ambassador school visits)
+- Great Big Green Week / COP community action grants (Climate Coalition)
+- Heat pump training / Heat Geek accreditation grants — workforce upskilling fund
+  (Action plan specifically calls for funding Heat Geek training for local installer)
+- Community Monitoring Network grants — biodiversity data, carbon tracking
 
 Search: current status, grant sizes, eligibility for Norfolk community groups.
 """,
@@ -568,12 +709,43 @@ These are high-value, locally specific funds that must be verified carefully:
 - South Norfolk CIL — confirm that the parish council receives a neighbourhood portion
   and how HEAT/HEAG can access it; search "South Norfolk CIL parish allocation 2024"
 
+PRIORITY VERIFICATION — ACTION PLAN SPECIFIC:
+These interventions are explicitly modelled in the Happy Healthy Hethersett Action Plan
+(April 2025) and need specific grant matches verified:
+
+- 100,000 trees by 2030 — verify EWCO, Urban Tree Challenge Fund, Woodland Trust MOREwoods
+  all currently open and that community groups / parish councils can access them
+- Community solar farm feasibility — verify Rural Community Energy Fund (RCEF) is open
+  and what a community in Hethersett specifically needs to do to apply
+- Community wind turbine feasibility — any current feasibility grant for community wind?
+- E-bike rental scheme (200 bikes planned) — verify Active Travel England grants for
+  e-bike community schemes; search "e-bike community scheme grant parish council UK 2025"
+- 30 fast + 10 rapid EV chargers — verify OZEV LEVI fund and ORCS scheme for parish
+  councils; search "parish council EV charger grant 2025 LEVI ORCS"
+- Heat Geek training for local installers — verify any specific workforce training grant;
+  search "heat pump installer training grant community 2025 UK"
+- Miyawaki forest — verify any specific grant programme for Miyawaki / dense urban forests;
+  search "Miyawaki forest grant UK community 2024 2025"
+- Community composting (3 sites planned) — verify community composting infrastructure grants
+- Biochar application (local farmers) — verify any grant for biochar in agriculture;
+  search "biochar agricultural grant UK community 2025"
+- BNG habitat creation — verify whether Hethersett parish can create BNG habitat units
+  from Taylor Wimpey / Persimmon developments and access associated funding
+- Norfolk Investment Framework — verify this is still active and can fund further work;
+  search "Norfolk Investment Framework community grants 2025"
+- UKRI / UEA partnership — verify any UKRI engaged research grants for community groups
+  partnering with universities on net zero; search "UKRI community partner net zero UEA 2025"
+- Warm Homes Local Grant — verify current status and whether parish councils can lead
+  applications for their communities; search "Warm Homes Local Grant 2025 parish council"
+
 Also search for:
 - "environmental grants open now UK 2025 community"
 - "new environmental grants announced 2025 UK government"
 - "net zero community grants England 2025 parish council"
 - "Norfolk community grants environment 2025"
 - "offshore wind community benefit fund Norfolk 2025"
+- "community energy fund 2025 rural community energy fund"
+- "Happy Healthy Hethersett HEAT HEAG grant"
 
 Return a final comprehensive JSON list of all verified grants.
 """,
