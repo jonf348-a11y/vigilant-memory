@@ -121,7 +121,7 @@ export default function Dashboard() {
             <QuickAction
               to="/find"
               title="Search for New Grants"
-              desc="Let the AI agent find grants matching your focus areas"
+              desc="Let this programme find grants matching your focus areas"
               icon="🔍"
             />
             <QuickAction
@@ -133,7 +133,7 @@ export default function Dashboard() {
             <QuickAction
               to="/apply"
               title="Get Application Help"
-              desc="Chat with the AI to help complete an application form"
+              desc="Use this programme to help complete an application form"
               icon="✍️"
             />
           </div>

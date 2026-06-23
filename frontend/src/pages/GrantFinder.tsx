@@ -161,7 +161,7 @@ export default function GrantFinder() {
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-leaf-900">Find Grants</h1>
         <p className="text-gray-500 mt-1">
-          The AI runs a deep, multi-phase search across the entire UK environmental grant
+          This programme runs a deep, multi-phase search across the entire UK environmental grant
           landscape. More tortoise than hare — typically <strong>20–40 minutes</strong>. That's deliberate.
         </p>
       </div>
