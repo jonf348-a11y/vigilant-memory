@@ -6,6 +6,7 @@ import {
   XCircle,
   Plus,
   Activity,
+  Clock,
 } from "lucide-react";
 import { api } from "../api";
 import GrantCard from "../components/GrantCard";
@@ -61,6 +62,9 @@ export default function GrantFinder() {
   const [newGrants, setNewGrants] = useState<Grant[]>([]);
   const pollRef = useRef<number | null>(null);
   const logBottomRef = useRef<HTMLDivElement>(null);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const timerRef = useRef<number | null>(null);
+  const startTimeRef = useRef<number>(0);
 
   useEffect(() => {
     logBottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -69,6 +73,7 @@ export default function GrantFinder() {
   useEffect(() => {
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
+      if (timerRef.current) clearInterval(timerRef.current);
     };
   }, []);
 
@@ -99,6 +104,7 @@ export default function GrantFinder() {
 
       if (res.status === "complete" || res.status === "failed") {
         clearInterval(pollRef.current!);
+        if (timerRef.current) clearInterval(timerRef.current);
         setJobStatus(res.status);
         if (res.status === "complete") {
           const all = await api.listGrants();
@@ -116,10 +122,15 @@ export default function GrantFinder() {
     setLogEntries([]);
     logCursorRef.current = 0;
     setGrantsFound(0);
+    setElapsedSeconds(0);
 
     try {
       const res = await api.startSearch(selected);
       setJobStatus("running");
+      startTimeRef.current = Date.now();
+      timerRef.current = window.setInterval(() => {
+        setElapsedSeconds(Math.floor((Date.now() - startTimeRef.current) / 1000));
+      }, 1000);
 
       pollRef.current = window.setInterval(async () => {
         await pollLog(res.job_id, logCursorRef.current);
@@ -131,13 +142,27 @@ export default function GrantFinder() {
 
   const isSearching = jobStatus === "running" || jobStatus === "pending";
 
+  const currentPhase = (() => {
+    for (let i = logEntries.length - 1; i >= 0; i--) {
+      const m = logEntries[i].msg.match(/^\[(\d+)\/(\d+)\]\s+(.+)/);
+      if (m) return { current: parseInt(m[1]), total: parseInt(m[2]), label: m[3] };
+    }
+    return null;
+  })();
+
+  const formatElapsed = (s: number) => {
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    return m > 0 ? `${m}m ${sec}s` : `${sec}s`;
+  };
+
   return (
     <div>
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-leaf-900">Find Grants</h1>
         <p className="text-gray-500 mt-1">
           The AI runs a deep, multi-phase search across the entire UK environmental grant
-          landscape. It takes a while — that's deliberate. Thoroughness over speed.
+          landscape. More tortoise than hare — typically <strong>20–40 minutes</strong>. That's deliberate.
         </p>
       </div>
 
@@ -209,13 +234,18 @@ export default function GrantFinder() {
             <Activity className="w-4 h-4 text-leaf-400" />
             <span className="text-sm font-medium text-gray-300">Research Log</span>
             {isSearching && (
-              <span className="ml-auto flex items-center gap-1.5 text-xs text-yellow-400">
-                <Loader2 className="w-3 h-3 animate-spin" /> Researching…
+              <span className="ml-auto flex items-center gap-2 text-xs text-yellow-400">
+                <Clock className="w-3 h-3" />
+                {formatElapsed(elapsedSeconds)}
+                <Loader2 className="w-3 h-3 animate-spin ml-1" /> Researching…
               </span>
             )}
             {jobStatus === "complete" && (
               <span className="ml-auto flex items-center gap-1.5 text-xs text-emerald-400">
                 <CheckCircle className="w-3 h-3" /> Complete — {grantsFound} grants found
+                {elapsedSeconds > 0 && (
+                  <span className="text-gray-500 ml-1">in {formatElapsed(elapsedSeconds)}</span>
+                )}
               </span>
             )}
             {jobStatus === "failed" && (
@@ -224,6 +254,23 @@ export default function GrantFinder() {
               </span>
             )}
           </div>
+
+          {/* Phase progress bar */}
+          {(isSearching || currentPhase) && currentPhase && (
+            <div className="px-4 py-3 border-b border-gray-800 bg-gray-900">
+              <div className="flex justify-between text-xs text-gray-400 mb-1.5">
+                <span>Phase {currentPhase.current} of {currentPhase.total}: {currentPhase.label}</span>
+                <span>{Math.round((currentPhase.current / currentPhase.total) * 100)}%</span>
+              </div>
+              <div className="w-full bg-gray-800 rounded-full h-1.5">
+                <div
+                  className="bg-leaf-500 h-1.5 rounded-full transition-all duration-700"
+                  style={{ width: `${(currentPhase.current / currentPhase.total) * 100}%` }}
+                />
+              </div>
+            </div>
+          )}
+
           <div className="p-4 font-mono text-xs h-64 overflow-y-auto space-y-0.5">
             {logEntries.length === 0 && (
               <div className="text-gray-600 italic">Starting up…</div>
