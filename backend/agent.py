@@ -788,16 +788,16 @@ Current research phase: {phase_label}
 {phase["focus"]}
 {funder_context}
 
-CRITICAL INSTRUCTIONS:
-1. Be EXHAUSTIVE. Do not stop after finding 3–4 grants. Search for every programme
-   in your focus area. Use multiple, varied search queries.
-2. Follow leads. If a search mentions a funder you haven't investigated, search for them.
-3. Verify. If a programme might be closed, search to confirm its current status.
-4. Be specific. Get actual grant amounts, real deadlines, real application URLs.
-5. Do not give up early. Keep searching until you are confident you've covered the field.
-6. When you are finally done searching, output ALL grants found as a single JSON array
-   wrapped in ```json ... ``` markers. Include every grant you found, even if eligibility
-   is uncertain (note uncertainty in eligibility_notes).
+MANDATORY RULES — NO EXCEPTIONS:
+1. You MUST use web_search for every programme before including it. Do NOT rely on
+   training knowledge. Grant deadlines, amounts and eligibility change constantly.
+2. Search BEFORE you write any JSON. Your first action must be a web_search call.
+3. Be EXHAUSTIVE — search every programme listed in your focus area.
+4. Follow leads: if a result mentions a funder you haven't searched, search them too.
+5. Every grant in your final JSON must have been verified by a live web_search call.
+   If you cannot find live confirmation, mark confidence "low" and note it.
+6. Only output the final ```json ... ``` array once you have searched exhaustively.
+   Do not output JSON mid-way through — search first, compile at the end.
 
 Output format — each grant must have:
   title            (string)
@@ -816,15 +816,15 @@ Output format — each grant must have:
   confidence       ("high", "medium", or "low" — how confident are you this is current/open)
 """
 
-    prompt = f"""Please research {phase_label} thoroughly for HEAT and HEAG in Hethersett.
+    prompt = f"""Research {phase_label} for HEAT and HEAG in Hethersett.
 
-Search systematically through all the programmes in your brief. For each one:
-- Search to confirm it's currently open
-- Get the specific grant amounts and deadline
-- Get the application URL
+Start searching NOW — your first action must be a web_search call. Do not write any text before searching.
 
-Keep searching until you've exhausted all the programmes in this phase.
-When done, output the full JSON array of grants found.
+For every programme in your brief:
+1. Search for it by name to get current status, amounts, deadline and application URL
+2. Only include it in your output once you have live search results confirming its status
+
+After searching all programmes, output a single ```json ... ``` array.
 """
 
     messages = [{"role": "user", "content": prompt}]
@@ -832,12 +832,14 @@ When done, output the full JSON array of grants found.
     last_search_count = 0
     force_finish_next = False
 
-    for iteration in range(65):
+    cached_system = [{"type": "text", "text": system, "cache_control": {"type": "ephemeral"}}]
+
+    for iteration in range(35):
         response = client.messages.create(
             model="claude-opus-4-8",
             max_tokens=16000,
             thinking={"type": "adaptive"},
-            system=system,
+            system=cached_system,
             tools=[{"type": "web_search_20260209", "name": "web_search"}],
             messages=messages,
         )
@@ -872,7 +874,7 @@ When done, output the full JSON array of grants found.
         messages.append({"role": "assistant", "content": response.content})
 
         # At iteration 55, nudge the model to wrap up
-        if iteration == 55 and response.stop_reason == "tool_use":
+        if iteration == 30 and response.stop_reason == "tool_use":
             messages.append({
                 "role": "user",
                 "content": (
@@ -1059,9 +1061,8 @@ def chat_with_assistant(
         messages.append({"role": "user", "content": user_message})
 
     response = client.messages.create(
-        model="claude-opus-4-8",
+        model="claude-sonnet-4-6",
         max_tokens=3000,
-        thinking={"type": "adaptive"},
         system=APPLY_HELPER_SYSTEM,
         messages=messages,
     )
