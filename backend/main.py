@@ -289,10 +289,14 @@ def get_stats(session: Session = Depends(get_session)):
         select(SearchJob).order_by(SearchJob.created_at.desc()).limit(5)
     ).all()
 
+    all_jobs = session.exec(select(SearchJob)).all()
+    total_searches = len(all_jobs)
+
     return {
         "total_grants": total,
         "by_status": by_status,
         "total_potential_value": total_potential,
+        "total_searches": total_searches,
         "recent_searches": [
             {
                 "job_id": j.id,

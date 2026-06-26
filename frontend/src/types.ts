@@ -36,6 +36,7 @@ export interface DashboardStats {
   total_grants: number;
   by_status: Record<string, number>;
   total_potential_value: number;
+  total_searches: number;
   recent_searches: {
     job_id: number;
     status: string;

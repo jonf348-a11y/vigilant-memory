@@ -47,6 +47,7 @@ export default function Dashboard() {
   const awarded = stats?.by_status?.awarded ?? 0;
   const active =
     (stats?.by_status?.reviewing ?? 0) + (stats?.by_status?.applied ?? 0);
+  const totalSearches = stats?.total_searches ?? 0;
 
   return (
     <div>
@@ -59,7 +60,7 @@ export default function Dashboard() {
       </div>
 
       {/* Key metrics */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
         <StatCard
           icon={<Search className="w-5 h-5 text-blue-500" />}
           label="Grants Found"
@@ -83,6 +84,12 @@ export default function Dashboard() {
           label="Potential Value"
           value={potential > 0 ? `£${potential.toLocaleString()}` : "—"}
           bg="bg-purple-50"
+        />
+        <StatCard
+          icon={<Search className="w-5 h-5 text-gray-500" />}
+          label="Searches Run"
+          value={totalSearches}
+          bg="bg-gray-50"
         />
       </div>
 
