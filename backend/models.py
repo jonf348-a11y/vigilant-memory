@@ -34,6 +34,7 @@ class SearchJob(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     focus_areas: str = "[]"  # JSON array
     status: str = "pending"  # pending, running, complete, failed
+    search_type: str = Field(default="full")  # "full" or "targeted"
     current_phase: Optional[str] = None
     phases_done: str = "[]"   # JSON list of completed phase names
     grants_found: int = 0
@@ -72,6 +73,10 @@ class SearchRequest(SQLModel):
         "electric vehicles",
         "net zero",
     ]
+
+
+class TargetedSearchRequest(SQLModel):
+    question: str
 
 
 class ChatMessage(SQLModel):

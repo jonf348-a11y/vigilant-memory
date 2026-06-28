@@ -760,20 +760,27 @@ def _run_phase(
     phase: dict,
     discovered_funders: list[str],
     progress: ProgressCallback,
+    known_db_funders: list[str] | None = None,
 ) -> list[dict]:
     """
     Run one research phase. Returns a list of raw grant dicts.
-    Makes up to 60 tool-use iterations before forcing a final answer.
+    Makes up to 35 tool-use iterations before forcing a final answer.
     """
     phase_name = phase["name"]
     phase_label = phase["label"]
     progress(f"Starting phase: {phase_label}", "phase")
 
     funder_context = ""
+    if known_db_funders:
+        funder_context += (
+            "\n\nFunders ALREADY IN THE DATABASE — SKIP THESE ENTIRELY. "
+            "Do not research, verify, or include them in your output:\n"
+            + "\n".join(f"  • {f}" for f in known_db_funders[:80])
+        )
     if discovered_funders:
-        funder_context = (
-            "\n\nFunders already identified in previous phases (avoid duplicating, "
-            "but do cross-reference):\n" + "\n".join(f"  • {f}" for f in discovered_funders[:40])
+        funder_context += (
+            "\n\nFunders found in earlier phases this run (do not duplicate):\n"
+            + "\n".join(f"  • {f}" for f in discovered_funders[:40])
         )
 
     system = f"""You are a tenacious, expert UK grant fundraiser with 20 years of experience
@@ -951,11 +958,13 @@ def research_grants_deep(
     focus_areas: list[str],
     progress: ProgressCallback,
     phases_to_run: list[str] | None = None,
+    known_funders: list[str] | None = None,
 ) -> list[dict]:
     """
     Run all research phases and return the combined de-duplicated grant list.
 
     phases_to_run: if provided, only run these phase names (useful for resuming).
+    known_funders: funders already in the database — the agent will skip them.
     """
     active_phases = [
         p for p in PHASES
@@ -964,6 +973,14 @@ def research_grants_deep(
 
     all_grants: list[dict] = []
     discovered_funders: list[str] = []
+    known_db_funders: list[str] = list(known_funders or [])
+
+    if known_db_funders:
+        progress(
+            f"Skipping {len(known_db_funders)} funders already in the database — "
+            "the agent will focus on finding new sources only.",
+            "info",
+        )
 
     progress(
         f"Beginning deep research across {len(active_phases)} specialist phases. "
@@ -977,7 +994,9 @@ def research_grants_deep(
             "phase",
         )
         try:
-            phase_grants = _run_phase(phase, discovered_funders, progress)
+            phase_grants = _run_phase(
+                phase, discovered_funders, progress, known_db_funders=known_db_funders
+            )
         except Exception as e:
             progress(f"  Phase {phase['name']} error: {e}", "info")
             phase_grants = []
@@ -1011,6 +1030,118 @@ def research_grants_deep(
         "phase",
     )
     return all_grants
+
+
+# ---------------------------------------------------------------------------
+# Targeted search — single focused question, no monthly limit
+# ---------------------------------------------------------------------------
+
+def research_targeted(
+    question: str,
+    known_funders: list[str],
+    progress: ProgressCallback,
+) -> list[dict]:
+    """
+    Run a single focused search for a specific question.
+    Much cheaper than the full 10-phase search — 12 iterations maximum.
+    Skips funders already in the database.
+    """
+    progress(f"Targeted search: {question}", "phase")
+
+    funder_context = ""
+    if known_funders:
+        funder_context = (
+            "\n\nFunders ALREADY IN THE DATABASE — do NOT re-research these. "
+            "Skip any programme you recognise from this list:\n"
+            + "\n".join(f"  • {f}" for f in known_funders[:80])
+        )
+
+    system = f"""You are an expert UK grant fundraiser researching a specific funding
+question for HEAT and HEAG in Hethersett, Norfolk.
+
+{APPLICANT_PROFILE}
+{funder_context}
+
+RULES:
+1. Use web_search for every programme before including it.
+2. Focus ONLY on the specific question asked — do not run a broad sweep.
+3. Every grant in your final JSON must be verified by a live web_search call.
+4. Do NOT include funders from the already-in-database list above.
+5. Output a single ```json ... ``` array when done.
+
+Output format — each grant must have:
+  title, funder, description, url, deadline, max_amount, min_amount,
+  focus_areas, eligibility_notes, confidence
+"""
+
+    prompt = (
+        f"Specific research question: {question}\n\n"
+        "Search for grants, funds or programmes that match this specific question. "
+        "Start with a web_search NOW. "
+        "Output the final ```json ... ``` array when done. "
+        "Keep searches focused — this is a targeted lookup, not a broad sweep."
+    )
+
+    messages = [{"role": "user", "content": prompt}]
+    searches_done = 0
+    cached_system = [{"type": "text", "text": system, "cache_control": {"type": "ephemeral"}}]
+
+    for iteration in range(12):
+        response = client.messages.create(
+            model="claude-opus-4-8",
+            max_tokens=8000,
+            thinking={"type": "adaptive"},
+            system=cached_system,
+            tools=[{"type": "web_search_20260209", "name": "web_search"}],
+            messages=messages,
+        )
+
+        new_searches = sum(
+            1 for block in response.content
+            if hasattr(block, "type") and block.type == "tool_use"
+        )
+        searches_done += new_searches
+        if new_searches > 0:
+            progress(f"  Targeted search: {searches_done} searches completed…", "info")
+
+        if response.stop_reason == "end_turn":
+            text = "".join(
+                block.text for block in response.content
+                if hasattr(block, "text") and block.text
+            )
+            grants = _parse_grants_json(text)
+            progress(
+                f"  Targeted search complete — {len(grants)} new grants found "
+                f"after {searches_done} searches",
+                "found",
+            )
+            return grants
+
+        messages.append({"role": "assistant", "content": response.content})
+
+        if iteration == 9 and response.stop_reason == "tool_use":
+            messages.append({
+                "role": "user",
+                "content": (
+                    "Good research. Please compile your findings into the "
+                    "final ```json ... ``` array now."
+                ),
+            })
+        else:
+            tool_results = [
+                {"type": "tool_result", "tool_use_id": block.id, "content": ""}
+                for block in response.content
+                if hasattr(block, "type") and block.type == "tool_use"
+            ]
+            if tool_results:
+                messages.append({"role": "user", "content": tool_results})
+
+    progress("  Targeted search: hit iteration limit — extracting partial results", "info")
+    last_text = "".join(
+        block.text for block in messages[-1].get("content", [])
+        if isinstance(block, dict) and block.get("type") == "text"
+    ) if messages else ""
+    return _parse_grants_json(last_text)
 
 
 # ---------------------------------------------------------------------------
@@ -1061,7 +1192,7 @@ def chat_with_assistant(
         messages.append({"role": "user", "content": user_message})
 
     response = client.messages.create(
-        model="claude-sonnet-4-6",
+        model="claude-haiku-4-5-20251001",
         max_tokens=3000,
         system=APPLY_HELPER_SYSTEM,
         messages=messages,

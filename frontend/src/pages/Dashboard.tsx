@@ -8,9 +8,11 @@ import {
   AlertCircle,
   Search,
   ArrowRight,
+  Bell,
+  ExternalLink,
 } from "lucide-react";
 import { api } from "../api";
-import type { DashboardStats } from "../types";
+import type { DashboardStats, Grant } from "../types";
 
 const statusColor: Record<string, string> = {
   discovered: "text-blue-600",
@@ -23,12 +25,18 @@ const statusColor: Record<string, string> = {
 
 export default function Dashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [toReview, setToReview] = useState<Grant[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api
-      .getStats()
-      .then(setStats)
+    Promise.all([
+      api.getStats(),
+      api.listGrants("discovered"),
+    ])
+      .then(([s, discovered]) => {
+        setStats(s);
+        setToReview(discovered.sort((a, b) => (b.max_amount ?? 0) - (a.max_amount ?? 0)).slice(0, 5));
+      })
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
@@ -93,6 +101,59 @@ export default function Dashboard() {
         />
       </div>
 
+      {/* Grants needing review */}
+      {toReview.length > 0 && (
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-5 shadow-sm mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-semibold text-blue-900 flex items-center gap-2">
+              <Bell className="w-4 h-4 text-blue-600" />
+              Grants to Review ({stats?.by_status?.discovered ?? toReview.length})
+            </h2>
+            <Link
+              to="/tracker"
+              className="text-xs text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1"
+            >
+              View all <ArrowRight className="w-3 h-3" />
+            </Link>
+          </div>
+          <div className="space-y-2">
+            {toReview.map((g) => (
+              <div
+                key={g.id}
+                className="bg-white rounded-lg border border-blue-100 px-3 py-2.5 flex items-center gap-3"
+              >
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-900 truncate">{g.title}</p>
+                  <p className="text-xs text-leaf-700">{g.funder}</p>
+                </div>
+                {g.max_amount && (
+                  <span className="text-sm font-semibold text-gray-700 shrink-0">
+                    £{g.max_amount.toLocaleString()}
+                  </span>
+                )}
+                {g.url && (
+                  <a
+                    href={g.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-leaf-600 hover:text-leaf-800 shrink-0"
+                    title="Open grant page"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                  </a>
+                )}
+              </div>
+            ))}
+          </div>
+          <Link
+            to="/tracker"
+            className="mt-3 flex items-center justify-center gap-2 w-full py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+          >
+            Review all discovered grants <ArrowRight className="w-4 h-4" />
+          </Link>
+        </div>
+      )}
+
       <div className="grid lg:grid-cols-2 gap-6">
         {/* By status breakdown */}
         <div className="bg-white rounded-xl border border-leaf-200 p-5 shadow-sm">
@@ -104,11 +165,12 @@ export default function Dashboard() {
             <ul className="space-y-2">
               {Object.entries(stats.by_status).map(([status, count]) => (
                 <li key={status} className="flex items-center justify-between">
-                  <span
-                    className={`capitalize text-sm font-medium ${statusColor[status] ?? "text-gray-600"}`}
+                  <Link
+                    to={`/tracker?status=${status}`}
+                    className={`capitalize text-sm font-medium hover:underline ${statusColor[status] ?? "text-gray-600"}`}
                   >
-                    {status.replace(/_/g, " ")}
-                  </span>
+                    {status === "discovered" ? "To Review" : status.replace(/_/g, " ")}
+                  </Link>
                   <span className="text-sm text-gray-700 font-semibold">{count}</span>
                 </li>
               ))}
@@ -126,16 +188,16 @@ export default function Dashboard() {
           </h2>
           <div className="space-y-3">
             <QuickAction
-              to="/find"
-              title="Search for New Grants"
-              desc="Let this programme find grants matching your focus areas"
-              icon="🔍"
+              to="/tracker"
+              title="Review Discovered Grants"
+              desc="See all found grants, update statuses and add notes"
+              icon="📋"
             />
             <QuickAction
-              to="/tracker"
-              title="Track Applications"
-              desc="Update statuses and add notes to your grant pipeline"
-              icon="📋"
+              to="/find"
+              title="Search for New Grants"
+              desc="Run a targeted search or a full deep research sweep"
+              icon="🔍"
             />
             <QuickAction
               to="/apply"

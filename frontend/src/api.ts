@@ -29,10 +29,26 @@ export const api = {
     req<void>(`/grants/${id}`, { method: "DELETE" }),
 
   // Search
+  getQuota: () =>
+    req<{
+      currently_running: boolean;
+      running_job_id: number | null;
+      last_full_search_at: string | null;
+      next_full_search_allowed_at: string | null;
+      days_since_last: number | null;
+      days_remaining: number | null;
+      is_locked: boolean;
+      total_grants_in_db: number;
+    }>("/search/quota"),
   startSearch: (focusAreas: string[]) =>
     req<{ job_id: number; status: string }>("/search", {
       method: "POST",
       body: JSON.stringify({ focus_areas: focusAreas }),
+    }),
+  startTargetedSearch: (question: string) =>
+    req<{ job_id: number; status: string }>("/search/targeted", {
+      method: "POST",
+      body: JSON.stringify({ question }),
     }),
   getSearchStatus: (jobId: number) => req<SearchJob>(`/search/${jobId}`),
 

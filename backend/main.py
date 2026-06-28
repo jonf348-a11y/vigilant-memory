@@ -1,6 +1,6 @@
 import json
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional
 from contextlib import asynccontextmanager
 
@@ -18,9 +18,12 @@ from models import (
     SearchJob,
     ApplicationSession,
     SearchRequest,
+    TargetedSearchRequest,
     ChatRequest,
 )
-from agent import research_grants_deep, chat_with_assistant, PHASES
+from agent import research_grants_deep, research_targeted, chat_with_assistant, PHASES
+
+SEARCH_COOLDOWN_DAYS = 30
 
 
 @asynccontextmanager
@@ -102,6 +105,13 @@ def _safe_int(value) -> Optional[int]:
         return None
 
 
+def _get_known_funders() -> list[str]:
+    """Return deduplicated list of funder names already in the database."""
+    with Session(engine) as s:
+        existing = s.exec(select(Grant)).all()
+        return list({g.funder for g in existing if g.funder})
+
+
 def run_grant_search(job_id: int, focus_areas: list[str]):
     with Session(engine) as session:
         job = session.get(SearchJob, job_id)
@@ -118,7 +128,45 @@ def run_grant_search(job_id: int, focus_areas: list[str]):
         _append_log(job_id=job_id, message=message, level=level)
 
     try:
-        grants = research_grants_deep(focus_areas, progress)
+        known_funders = _get_known_funders()
+        grants = research_grants_deep(focus_areas, progress, known_funders=known_funders)
+        total_saved = _save_grants_batch(grants)
+
+        with Session(engine) as s:
+            job = s.get(SearchJob, job_id)
+            if job:
+                job.status = "complete"
+                job.grants_found = total_saved
+                job.completed_at = datetime.utcnow().isoformat()
+                s.add(job)
+                s.commit()
+
+    except Exception as e:
+        _append_log(job_id=job_id, message=f"Fatal error: {e}", level="error")
+        with Session(engine) as s:
+            job = s.get(SearchJob, job_id)
+            if job:
+                job.status = "failed"
+                job.error = str(e)
+                s.add(job)
+                s.commit()
+
+
+def run_targeted_search(job_id: int, question: str):
+    with Session(engine) as session:
+        job = session.get(SearchJob, job_id)
+        if not job:
+            return
+        job.status = "running"
+        session.add(job)
+        session.commit()
+
+    def progress(message: str, level: str = "info"):
+        _append_log(job_id=job_id, message=message, level=level)
+
+    try:
+        known_funders = _get_known_funders()
+        grants = research_targeted(question, known_funders, progress)
         total_saved = _save_grants_batch(grants)
 
         with Session(engine) as s:
@@ -143,20 +191,123 @@ def run_grant_search(job_id: int, focus_areas: list[str]):
 
 # --- Grant search endpoints ---
 
+def _get_last_full_search(session: Session) -> Optional[SearchJob]:
+    return session.exec(
+        select(SearchJob)
+        .where(SearchJob.search_type == "full")
+        .where(SearchJob.status == "complete")
+        .order_by(SearchJob.completed_at.desc())
+    ).first()
+
+
+def _get_running_search(session: Session) -> Optional[SearchJob]:
+    return session.exec(
+        select(SearchJob).where(SearchJob.status.in_(["running", "pending"]))
+    ).first()
+
+
+@app.get("/api/search/quota")
+def get_search_quota(session: Session = Depends(get_session)):
+    """Return quota status — last search date, next allowed date, whether locked."""
+    running = _get_running_search(session)
+    last = _get_last_full_search(session)
+
+    result: dict = {
+        "currently_running": running is not None,
+        "running_job_id": running.id if running else None,
+        "last_full_search_at": None,
+        "next_full_search_allowed_at": None,
+        "days_since_last": None,
+        "days_remaining": None,
+        "is_locked": False,
+        "total_grants_in_db": session.exec(select(Grant)).all().__len__(),
+    }
+
+    if last and last.completed_at:
+        last_dt = datetime.fromisoformat(last.completed_at)
+        days_since = (datetime.utcnow() - last_dt).days
+        next_allowed_dt = last_dt + timedelta(days=SEARCH_COOLDOWN_DAYS)
+        days_remaining = max(0, SEARCH_COOLDOWN_DAYS - days_since)
+        result["last_full_search_at"] = last.completed_at
+        result["next_full_search_allowed_at"] = next_allowed_dt.isoformat()
+        result["days_since_last"] = days_since
+        result["days_remaining"] = days_remaining
+        result["is_locked"] = days_remaining > 0
+
+    return result
+
+
 @app.post("/api/search", status_code=202)
 def start_grant_search(
     request: SearchRequest,
     background_tasks: BackgroundTasks,
     session: Session = Depends(get_session),
 ):
-    """Start a background grant search job."""
-    job = SearchJob(focus_areas=json.dumps(request.focus_areas))
+    """Start a background grant search job. Limited to once every 30 days."""
+    running = _get_running_search(session)
+    if running:
+        raise HTTPException(
+            status_code=409,
+            detail=f"A search is already in progress (job #{running.id}). Wait for it to finish.",
+        )
+
+    last = _get_last_full_search(session)
+    if last and last.completed_at:
+        last_dt = datetime.fromisoformat(last.completed_at)
+        days_since = (datetime.utcnow() - last_dt).days
+        if days_since < SEARCH_COOLDOWN_DAYS:
+            days_remaining = SEARCH_COOLDOWN_DAYS - days_since
+            next_allowed = (last_dt + timedelta(days=SEARCH_COOLDOWN_DAYS)).strftime("%-d %B %Y")
+            raise HTTPException(
+                status_code=429,
+                detail=(
+                    f"Full search ran {days_since} day(s) ago. "
+                    f"Next full search allowed on {next_allowed} "
+                    f"({days_remaining} day(s) remaining). "
+                    "Use targeted search for specific questions in the meantime."
+                ),
+            )
+
+    job = SearchJob(focus_areas=json.dumps(request.focus_areas), search_type="full")
     session.add(job)
     session.commit()
     session.refresh(job)
 
     background_tasks.add_task(run_grant_search, job.id, request.focus_areas)
+    return {"job_id": job.id, "status": "pending"}
 
+
+@app.post("/api/search/targeted", status_code=202)
+def start_targeted_search(
+    request: TargetedSearchRequest,
+    background_tasks: BackgroundTasks,
+    session: Session = Depends(get_session),
+):
+    """Start a targeted search for a specific question. No monthly limit."""
+    if not request.question or len(request.question.strip()) < 5:
+        raise HTTPException(status_code=400, detail="Question must be at least 5 characters.")
+
+    running = _get_running_search(session)
+    if running:
+        raise HTTPException(
+            status_code=409,
+            detail=f"A search is already in progress (job #{running.id}). Wait for it to finish.",
+        )
+
+    job = SearchJob(
+        focus_areas=json.dumps([]),
+        search_type="targeted",
+        log_entries=json.dumps([{
+            "ts": datetime.utcnow().isoformat(),
+            "msg": f"Targeted search: {request.question}",
+            "level": "phase",
+        }]),
+    )
+    session.add(job)
+    session.commit()
+    session.refresh(job)
+
+    background_tasks.add_task(run_targeted_search, job.id, request.question.strip())
     return {"job_id": job.id, "status": "pending"}
 
 

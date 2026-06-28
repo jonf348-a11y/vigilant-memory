@@ -8,6 +8,18 @@ engine = create_engine(DATABASE_URL, echo=False, connect_args={"check_same_threa
 
 def create_db_and_tables():
     SQLModel.metadata.create_all(engine)
+    _migrate()
+
+
+def _migrate():
+    """Add columns that did not exist in earlier schema versions."""
+    from sqlalchemy import text
+    with engine.connect() as conn:
+        try:
+            conn.execute(text("ALTER TABLE searchjob ADD COLUMN search_type TEXT DEFAULT 'full'"))
+            conn.commit()
+        except Exception:
+            pass  # Column already exists
 
 
 def get_session():

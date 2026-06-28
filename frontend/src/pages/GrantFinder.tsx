@@ -7,6 +7,9 @@ import {
   Plus,
   Activity,
   Clock,
+  Lock,
+  Target,
+  AlertTriangle,
 } from "lucide-react";
 import { api } from "../api";
 import GrantCard from "../components/GrantCard";
@@ -26,6 +29,17 @@ interface LogResponse {
   entries: LogEntry[];
 }
 
+interface Quota {
+  currently_running: boolean;
+  running_job_id: number | null;
+  last_full_search_at: string | null;
+  next_full_search_allowed_at: string | null;
+  days_since_last: number | null;
+  days_remaining: number | null;
+  is_locked: boolean;
+  total_grants_in_db: number;
+}
+
 const DEFAULT_AREAS = [
   "tree planting",
   "rewilding",
@@ -37,7 +51,6 @@ const DEFAULT_AREAS = [
   "electric vehicles",
   "net zero",
 ];
-
 
 function levelClasses(level: string) {
   switch (level) {
@@ -52,10 +65,19 @@ function levelClasses(level: string) {
   }
 }
 
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
+
 export default function GrantFinder() {
   const [selected, setSelected] = useState<string[]>(DEFAULT_AREAS);
   const [custom, setCustom] = useState("");
   const [jobStatus, setJobStatus] = useState<string>("idle");
+  const [jobType, setJobType] = useState<"full" | "targeted">("full");
   const [grantsFound, setGrantsFound] = useState(0);
   const [logEntries, setLogEntries] = useState<LogEntry[]>([]);
   const logCursorRef = useRef(0);
@@ -65,6 +87,13 @@ export default function GrantFinder() {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const timerRef = useRef<number | null>(null);
   const startTimeRef = useRef<number>(0);
+  const [quota, setQuota] = useState<Quota | null>(null);
+  const [targetedQuestion, setTargetedQuestion] = useState("");
+  const [searchError, setSearchError] = useState<string | null>(null);
+
+  useEffect(() => {
+    api.getQuota().then(setQuota).catch(() => null);
+  }, []);
 
   useEffect(() => {
     logBottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -109,11 +138,23 @@ export default function GrantFinder() {
         if (res.status === "complete") {
           const all = await api.listGrants();
           setNewGrants(all.slice(0, Math.min(res.grants_found, all.length)));
+          // Refresh quota after a completed search
+          api.getQuota().then(setQuota).catch(() => null);
         }
       }
-    } catch (e) {
+    } catch (_e) {
       // polling errors are transient — keep going
     }
+  };
+
+  const beginPolling = (jobId: number) => {
+    startTimeRef.current = Date.now();
+    timerRef.current = window.setInterval(() => {
+      setElapsedSeconds(Math.floor((Date.now() - startTimeRef.current) / 1000));
+    }, 1000);
+    pollRef.current = window.setInterval(async () => {
+      await pollLog(jobId, logCursorRef.current);
+    }, 4000);
   };
 
   const startSearch = async () => {
@@ -123,20 +164,41 @@ export default function GrantFinder() {
     logCursorRef.current = 0;
     setGrantsFound(0);
     setElapsedSeconds(0);
+    setSearchError(null);
+    setJobType("full");
 
     try {
       const res = await api.startSearch(selected);
       setJobStatus("running");
-      startTimeRef.current = Date.now();
-      timerRef.current = window.setInterval(() => {
-        setElapsedSeconds(Math.floor((Date.now() - startTimeRef.current) / 1000));
-      }, 1000);
+      beginPolling(res.job_id);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      // Strip the status code prefix that req() prepends
+      const detail = msg.replace(/^\d+:\s*/, "");
+      setSearchError(detail);
+      setJobStatus("idle");
+    }
+  };
 
-      pollRef.current = window.setInterval(async () => {
-        await pollLog(res.job_id, logCursorRef.current);
-      }, 4000);
-    } catch (_e) {
-      setJobStatus("failed");
+  const startTargeted = async () => {
+    const q = targetedQuestion.trim();
+    if (q.length < 5) return;
+    setNewGrants([]);
+    setLogEntries([]);
+    logCursorRef.current = 0;
+    setGrantsFound(0);
+    setElapsedSeconds(0);
+    setSearchError(null);
+    setJobType("targeted");
+
+    try {
+      const res = await api.startTargetedSearch(q);
+      setJobStatus("running");
+      beginPolling(res.job_id);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      setSearchError(msg.replace(/^\d+:\s*/, ""));
+      setJobStatus("idle");
     }
   };
 
@@ -156,24 +218,88 @@ export default function GrantFinder() {
     return m > 0 ? `${m}m ${sec}s` : `${sec}s`;
   };
 
+  const isFullLocked = quota?.is_locked || quota?.currently_running;
+
   return (
     <div>
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-leaf-900">Find Grants</h1>
         <p className="text-gray-500 mt-1">
-          This programme runs a deep, multi-phase search across the entire UK environmental grant
-          landscape. More tortoise than hare — typically <strong>20–40 minutes</strong>. That's deliberate.
+          The full search covers 10 research phases across the entire UK environmental grant
+          landscape — typically <strong>20–40 minutes</strong>.
+          Use targeted search for specific questions any time.
         </p>
       </div>
 
-      <div className="bg-white rounded-xl border border-leaf-200 p-6 shadow-sm mb-6">
-        <h2 className="font-semibold text-gray-800 mb-3">Choose Focus Areas</h2>
+      {/* Quota status banner */}
+      {quota && (
+        <div className={`rounded-xl border p-4 mb-5 flex items-start gap-3 ${
+          isFullLocked
+            ? "bg-amber-50 border-amber-200"
+            : "bg-emerald-50 border-emerald-200"
+        }`}>
+          {isFullLocked ? (
+            <Lock className="w-5 h-5 text-amber-500 mt-0.5 shrink-0" />
+          ) : (
+            <CheckCircle className="w-5 h-5 text-emerald-500 mt-0.5 shrink-0" />
+          )}
+          <div className="text-sm">
+            {quota.currently_running ? (
+              <p className="font-medium text-amber-800">
+                A search is currently running (job #{quota.running_job_id}). Wait for it to finish before starting another.
+              </p>
+            ) : quota.is_locked ? (
+              <>
+                <p className="font-medium text-amber-800">
+                  Full search locked — ran {quota.days_since_last} day(s) ago.
+                  Next allowed on <strong>{formatDate(quota.next_full_search_allowed_at!)}</strong> ({quota.days_remaining} day(s)).
+                </p>
+                <p className="text-amber-700 mt-0.5">
+                  {quota.total_grants_in_db} grants already in the database. Review those first — use targeted search for anything specific.
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="font-medium text-emerald-800">
+                  Full search available.
+                  {quota.last_full_search_at
+                    ? ` Last run ${quota.days_since_last} day(s) ago.`
+                    : " No full search has run yet."}
+                </p>
+                <p className="text-emerald-700 mt-0.5">
+                  {quota.total_grants_in_db > 0
+                    ? `${quota.total_grants_in_db} grants already in the database — the agent will skip funders it has already found.`
+                    : "No grants in the database yet."}
+                </p>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Error banner */}
+      {searchError && (
+        <div className="rounded-xl border border-red-200 bg-red-50 p-4 mb-5 flex items-start gap-3">
+          <AlertTriangle className="w-5 h-5 text-red-500 mt-0.5 shrink-0" />
+          <p className="text-sm text-red-700">{searchError}</p>
+        </div>
+      )}
+
+      {/* Full search panel */}
+      <div className={`bg-white rounded-xl border p-6 shadow-sm mb-5 ${isFullLocked ? "opacity-60" : "border-leaf-200"}`}>
+        <div className="flex items-center gap-2 mb-3">
+          <Search className="w-4 h-4 text-leaf-600" />
+          <h2 className="font-semibold text-gray-800">Full Deep Search</h2>
+          {isFullLocked && <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">Locked</span>}
+        </div>
+
         <div className="flex flex-wrap gap-2 mb-4">
           {selected.map((area) => (
             <button
               key={area}
-              onClick={() => toggleArea(area)}
-              className="px-3 py-1.5 rounded-full text-sm font-medium bg-leaf-600 text-white hover:bg-leaf-700 transition-colors"
+              onClick={() => !isFullLocked && toggleArea(area)}
+              disabled={isFullLocked || isSearching}
+              className="px-3 py-1.5 rounded-full text-sm font-medium bg-leaf-600 text-white hover:bg-leaf-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {area} ×
             </button>
@@ -181,8 +307,9 @@ export default function GrantFinder() {
           {DEFAULT_AREAS.filter((a) => !selected.includes(a)).map((area) => (
             <button
               key={area}
-              onClick={() => toggleArea(area)}
-              className="px-3 py-1.5 rounded-full text-sm font-medium bg-gray-100 text-gray-600 hover:bg-leaf-100 hover:text-leaf-700 border border-gray-200 transition-colors"
+              onClick={() => !isFullLocked && toggleArea(area)}
+              disabled={isFullLocked || isSearching}
+              className="px-3 py-1.5 rounded-full text-sm font-medium bg-gray-100 text-gray-600 hover:bg-leaf-100 hover:text-leaf-700 border border-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {area}
             </button>
@@ -195,12 +322,14 @@ export default function GrantFinder() {
             value={custom}
             onChange={(e) => setCustom(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && addCustom()}
+            disabled={isFullLocked || isSearching}
             placeholder="Add custom topic…"
-            className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-leaf-400"
+            className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-leaf-400 disabled:opacity-50"
           />
           <button
             onClick={addCustom}
-            className="flex items-center gap-1 px-3 py-2 bg-leaf-100 text-leaf-700 rounded-lg hover:bg-leaf-200 text-sm font-medium transition-colors"
+            disabled={isFullLocked || isSearching}
+            className="flex items-center gap-1 px-3 py-2 bg-leaf-100 text-leaf-700 rounded-lg hover:bg-leaf-200 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             <Plus className="w-4 h-4" /> Add
           </button>
@@ -208,23 +337,67 @@ export default function GrantFinder() {
 
         <button
           onClick={startSearch}
-          disabled={isSearching || selected.length === 0}
+          disabled={isFullLocked || isSearching || selected.length === 0}
           className="flex items-center gap-2 px-6 py-2.5 bg-leaf-600 text-white rounded-lg font-medium hover:bg-leaf-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
-          {isSearching ? (
+          {isSearching && jobType === "full" ? (
             <Loader2 className="w-4 h-4 animate-spin" />
+          ) : isFullLocked ? (
+            <Lock className="w-4 h-4" />
           ) : (
             <Search className="w-4 h-4" />
           )}
-          {isSearching ? "Researching…" : "Start Deep Research"}
+          {isSearching && jobType === "full"
+            ? "Researching…"
+            : isFullLocked
+            ? "Full Search Locked"
+            : "Start Deep Research"}
         </button>
 
-        {!isSearching && jobStatus === "idle" && (
+        {!isFullLocked && !isSearching && (
           <p className="text-xs text-gray-400 mt-3">
-            Covers 10 research phases: National Lottery · Government · Energy schemes ·
+            Covers 10 phases: National Lottery · Government · Energy schemes ·
             Wildlife charities · Norfolk funders · Major trusts · Corporate CSR · and more.
+            Once per 30 days.
           </p>
         )}
+      </div>
+
+      {/* Targeted search panel */}
+      <div className="bg-white rounded-xl border border-leaf-200 p-6 shadow-sm mb-6">
+        <div className="flex items-center gap-2 mb-2">
+          <Target className="w-4 h-4 text-leaf-600" />
+          <h2 className="font-semibold text-gray-800">Targeted Search</h2>
+          <span className="text-xs bg-leaf-100 text-leaf-700 px-2 py-0.5 rounded-full font-medium">Always available</span>
+        </div>
+        <p className="text-sm text-gray-500 mb-4">
+          Ask a specific question — for example, "grants for community composting in Norfolk" or
+          "EV charging point funding for parish councils 2025". Cheaper and faster than the full search.
+          Will not re-research funders already in the database.
+        </p>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={targetedQuestion}
+            onChange={(e) => setTargetedQuestion(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && !isSearching && startTargeted()}
+            disabled={isSearching}
+            placeholder="What specific grant or funder do you want to research?"
+            className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-leaf-400 disabled:opacity-50"
+          />
+          <button
+            onClick={startTargeted}
+            disabled={isSearching || targetedQuestion.trim().length < 5}
+            className="flex items-center gap-2 px-5 py-2 bg-leaf-600 text-white rounded-lg font-medium hover:bg-leaf-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm transition-colors"
+          >
+            {isSearching && jobType === "targeted" ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Target className="w-4 h-4" />
+            )}
+            {isSearching && jobType === "targeted" ? "Searching…" : "Search"}
+          </button>
+        </div>
       </div>
 
       {/* Live research log */}
@@ -232,7 +405,9 @@ export default function GrantFinder() {
         <div className="bg-gray-950 rounded-xl border border-gray-800 mb-6 overflow-hidden">
           <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-800">
             <Activity className="w-4 h-4 text-leaf-400" />
-            <span className="text-sm font-medium text-gray-300">Research Log</span>
+            <span className="text-sm font-medium text-gray-300">
+              {jobType === "targeted" ? "Targeted Search Log" : "Research Log"}
+            </span>
             {isSearching && (
               <span className="ml-auto flex items-center gap-2 text-xs text-yellow-400">
                 <Clock className="w-3 h-3" />
@@ -255,8 +430,7 @@ export default function GrantFinder() {
             )}
           </div>
 
-          {/* Phase progress bar */}
-          {(isSearching || currentPhase) && currentPhase && (
+          {(isSearching || currentPhase) && currentPhase && jobType === "full" && (
             <div className="px-4 py-3 border-b border-gray-800 bg-gray-900">
               <div className="flex justify-between text-xs text-gray-400 mb-1.5">
                 <span>Phase {currentPhase.current} of {currentPhase.total}: {currentPhase.label}</span>
@@ -295,7 +469,7 @@ export default function GrantFinder() {
       {newGrants.length > 0 && (
         <div>
           <h2 className="font-semibold text-gray-800 mb-3">
-            Grants Found ({newGrants.length})
+            New Grants Found ({newGrants.length})
           </h2>
           <div className="grid gap-4 md:grid-cols-2">
             {newGrants.map((grant) => (
