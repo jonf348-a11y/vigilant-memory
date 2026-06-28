@@ -841,7 +841,7 @@ After searching all programmes, output a single ```json ... ``` array.
 
     cached_system = [{"type": "text", "text": system, "cache_control": {"type": "ephemeral"}}]
 
-    for iteration in range(35):
+    for iteration in range(20):
         response = client.messages.create(
             model="claude-opus-4-8",
             max_tokens=16000,
@@ -880,8 +880,7 @@ After searching all programmes, output a single ```json ... ``` array.
         # Append assistant turn and continue
         messages.append({"role": "assistant", "content": response.content})
 
-        # At iteration 55, nudge the model to wrap up
-        if iteration == 30 and response.stop_reason == "tool_use":
+        if iteration == 16 and response.stop_reason == "tool_use":
             messages.append({
                 "role": "user",
                 "content": (
@@ -1088,9 +1087,8 @@ Output format — each grant must have:
 
     for iteration in range(12):
         response = client.messages.create(
-            model="claude-opus-4-8",
+            model="claude-sonnet-4-6",
             max_tokens=8000,
-            thinking={"type": "adaptive"},
             system=cached_system,
             tools=[{"type": "web_search_20260209", "name": "web_search"}],
             messages=messages,
