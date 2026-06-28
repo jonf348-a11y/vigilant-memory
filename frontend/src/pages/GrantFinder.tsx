@@ -5,7 +5,6 @@ import {
   Loader2,
   CheckCircle,
   XCircle,
-  Plus,
   Activity,
   Clock,
   Lock,
@@ -49,16 +48,32 @@ interface RecentSearch {
   grants_found: number;
 }
 
-const DEFAULT_AREAS = [
-  "tree planting",
-  "rewilding",
-  "solar energy",
-  "insulation",
-  "heat pumps",
-  "biodiversity",
-  "community education",
-  "electric vehicles",
-  "net zero",
+const SEARCH_PHASES = [
+  {
+    name: "public_lottery",
+    label: "Public Sector & Lottery",
+    description: "National Lottery, NLCF, DEFRA, Forestry Commission, UKSPF, LEADER",
+  },
+  {
+    name: "energy_climate",
+    label: "Energy & Climate",
+    description: "Community solar/wind, EV chargers, e-bikes, insulation, heat pumps, climate action",
+  },
+  {
+    name: "nature_wildlife",
+    label: "Nature & Wildlife",
+    description: "Wildlife Trusts, RSPB, Woodland Trust, tree planting, biodiversity, rewilding",
+  },
+  {
+    name: "community_norfolk",
+    label: "Community & Norfolk Local",
+    description: "Groundwork, Norfolk funders, offshore wind funds, S106/CIL, developer contributions",
+  },
+  {
+    name: "trusts_corporate",
+    label: "Major Trusts & Corporate",
+    description: "Esmée Fairbairn, supermarkets, energy companies, Dulverton, Garfield Weston",
+  },
 ];
 
 function levelClasses(level: string) {
@@ -84,8 +99,9 @@ function formatDate(iso: string) {
 
 export default function GrantFinder() {
   const navigate = useNavigate();
-  const [selected, setSelected] = useState<string[]>(DEFAULT_AREAS);
-  const [custom, setCustom] = useState("");
+  const [selectedPhases, setSelectedPhases] = useState<string[]>(
+    SEARCH_PHASES.map((p) => p.name)
+  );
   const [jobStatus, setJobStatus] = useState<string>("idle");
   const [jobType, setJobType] = useState<"full" | "targeted">("full");
   const [grantsFound, setGrantsFound] = useState(0);
@@ -124,18 +140,10 @@ export default function GrantFinder() {
     };
   }, []);
 
-  const toggleArea = (area: string) => {
-    setSelected((prev) =>
-      prev.includes(area) ? prev.filter((a) => a !== area) : [...prev, area]
+  const togglePhase = (name: string) => {
+    setSelectedPhases((prev) =>
+      prev.includes(name) ? prev.filter((p) => p !== name) : [...prev, name]
     );
-  };
-
-  const addCustom = () => {
-    const trimmed = custom.trim().toLowerCase();
-    if (trimmed && !selected.includes(trimmed)) {
-      setSelected((prev) => [...prev, trimmed]);
-    }
-    setCustom("");
   };
 
   const pollLog = async (id: number, cursor: number) => {
@@ -176,7 +184,7 @@ export default function GrantFinder() {
   };
 
   const startSearch = async () => {
-    if (selected.length === 0) return;
+    if (selectedPhases.length === 0) return;
     setLogEntries([]);
     logCursorRef.current = 0;
     setGrantsFound(0);
@@ -187,7 +195,7 @@ export default function GrantFinder() {
     setJobType("full");
 
     try {
-      const res = await api.startSearch(selected);
+      const res = await api.startSearch(selectedPhases);
       setJobStatus("running");
       setCompletedType("full");
       beginPolling(res.job_id);
@@ -246,8 +254,8 @@ export default function GrantFinder() {
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-leaf-900">Find Grants</h1>
         <p className="text-gray-500 mt-1">
-          The full search covers 10 research phases across the entire UK environmental grant
-          landscape — typically <strong>20–40 minutes</strong>.
+          The full search covers up to 6 research phases — select only the areas relevant to
+          your project to save time and cost. Typically <strong>10–30 minutes</strong>.
           Use targeted search for specific questions any time.
         </p>
       </div>
@@ -314,51 +322,44 @@ export default function GrantFinder() {
           {isFullLocked && <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">Locked</span>}
         </div>
 
-        <div className="flex flex-wrap gap-2 mb-4">
-          {selected.map((area) => (
-            <button
-              key={area}
-              onClick={() => !isFullLocked && toggleArea(area)}
-              disabled={isFullLocked || isSearching}
-              className="px-3 py-1.5 rounded-full text-sm font-medium bg-leaf-600 text-white hover:bg-leaf-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {area} ×
-            </button>
-          ))}
-          {DEFAULT_AREAS.filter((a) => !selected.includes(a)).map((area) => (
-            <button
-              key={area}
-              onClick={() => !isFullLocked && toggleArea(area)}
-              disabled={isFullLocked || isSearching}
-              className="px-3 py-1.5 rounded-full text-sm font-medium bg-gray-100 text-gray-600 hover:bg-leaf-100 hover:text-leaf-700 border border-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {area}
-            </button>
-          ))}
-        </div>
+        <p className="text-sm text-gray-500 mb-3">
+          Select which funding areas to research. Deselect any that aren't relevant to save time and cost.
+          <span className="text-gray-400"> Verify & Deepen always runs last.</span>
+        </p>
 
-        <div className="flex gap-2 mb-5">
-          <input
-            type="text"
-            value={custom}
-            onChange={(e) => setCustom(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && addCustom()}
-            disabled={isFullLocked || isSearching}
-            placeholder="Add custom topic…"
-            className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-leaf-400 disabled:opacity-50"
-          />
-          <button
-            onClick={addCustom}
-            disabled={isFullLocked || isSearching}
-            className="flex items-center gap-1 px-3 py-2 bg-leaf-100 text-leaf-700 rounded-lg hover:bg-leaf-200 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            <Plus className="w-4 h-4" /> Add
-          </button>
+        <div className="space-y-2 mb-5">
+          {SEARCH_PHASES.map((phase) => {
+            const checked = selectedPhases.includes(phase.name);
+            return (
+              <label
+                key={phase.name}
+                className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                  isFullLocked || isSearching
+                    ? "opacity-50 cursor-not-allowed"
+                    : checked
+                    ? "border-leaf-300 bg-leaf-50"
+                    : "border-gray-200 bg-white hover:border-leaf-200"
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  disabled={isFullLocked || isSearching}
+                  onChange={() => !isFullLocked && !isSearching && togglePhase(phase.name)}
+                  className="mt-0.5 accent-leaf-600 shrink-0"
+                />
+                <div>
+                  <span className="text-sm font-medium text-gray-800">{phase.label}</span>
+                  <span className="text-xs text-gray-500 block mt-0.5">{phase.description}</span>
+                </div>
+              </label>
+            );
+          })}
         </div>
 
         <button
           onClick={startSearch}
-          disabled={isFullLocked || isSearching || selected.length === 0}
+          disabled={isFullLocked || isSearching || selectedPhases.length === 0}
           className="flex items-center gap-2 px-6 py-2.5 bg-leaf-600 text-white rounded-lg font-medium hover:bg-leaf-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {isSearching && jobType === "full" ? (
@@ -372,14 +373,12 @@ export default function GrantFinder() {
             ? "Researching…"
             : isFullLocked
             ? "Full Search Locked"
-            : "Start Deep Research"}
+            : `Start Deep Research${selectedPhases.length < SEARCH_PHASES.length ? ` (${selectedPhases.length + 1} phases)` : ""}`}
         </button>
 
         {!isFullLocked && !isSearching && (
           <p className="text-xs text-gray-400 mt-3">
-            Covers 10 phases: National Lottery · Government · Energy schemes ·
-            Wildlife charities · Norfolk funders · Major trusts · Corporate CSR · and more.
-            Once per 30 days.
+            {selectedPhases.length} of {SEARCH_PHASES.length} areas selected · Verify & Deepen always included · Once per 30 days.
           </p>
         )}
 

@@ -40,10 +40,10 @@ export const api = {
       is_locked: boolean;
       total_grants_in_db: number;
     }>("/search/quota"),
-  startSearch: (focusAreas: string[]) =>
+  startSearch: (phaseNames: string[]) =>
     req<{ job_id: number; status: string }>("/search", {
       method: "POST",
-      body: JSON.stringify({ focus_areas: focusAreas }),
+      body: JSON.stringify({ phase_names: phaseNames }),
     }),
   startTargetedSearch: (question: string) =>
     req<{ job_id: number; status: string }>("/search/targeted", {

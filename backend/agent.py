@@ -1,20 +1,16 @@
 """
 Deep grant research agent for HEAT and HEAG, Hethersett, Norfolk.
 
-Runs 10 specialist research phases covering the full UK environmental
-grant landscape, making up to 60 web searches per phase.
+Runs up to 6 specialist research phases covering the full UK environmental
+grant landscape. Volunteers select which phases to run before starting.
 
 Phase order:
-  1  national_lottery     – NLCF programmes
-  2  government_nature    – DEFRA, Forestry Commission, Natural England
-  3  energy_netzero       – DESNZ, ECO4, GBIS, community energy
-  4  wildlife_charities   – Wildlife Trusts, RSPB, Woodland Trust, etc.
-  5  community_charities  – Groundwork, TCV, Keep Britain Tidy
-  6  norfolk_regional     – NCC, South Norfolk, NCF, LEADER, UKSPF
-  7  major_trusts         – Esmée Fairbairn, Garfield Weston, Dulverton, etc.
-  8  corporate_csr        – Tesco, energy companies, housebuilders
-  9  climate_specialist   – Ashden, CEF, Transition Network, etc.
- 10  verify_enrich        – Verify and deepen the best leads found
+  1  public_lottery     – National Lottery, NLCF, government nature schemes
+  2  energy_climate     – Community energy, EV, insulation, climate action
+  3  nature_wildlife    – Wildlife Trusts, RSPB, Woodland Trust, Biffa, etc.
+  4  community_norfolk  – Groundwork, Norfolk funders, offshore wind, S106/CIL
+  5  trusts_corporate   – Major trusts, supermarkets, energy companies, tech
+  6  verify_enrich      – Verify and deepen the best leads found (always runs)
 """
 
 import anthropic
@@ -166,586 +162,306 @@ Key interventions modelled (grants MUST match these real, planned activities):
 
 PHASES = [
     {
-        "name": "national_lottery",
-        "label": "National Lottery Community Fund",
+        "name": "public_lottery",
+        "label": "Public Sector & Lottery Funding",
         "focus": """
-You are an expert UK grant fundraiser researching the National Lottery Community Fund (NLCF)
-and related lottery distributors for grants that HEAT/HEAG in Hethersett could apply for.
+You are an expert UK grant fundraiser researching public sector and lottery grants
+for HEAT/HEAG, a community environmental group in Hethersett, Norfolk.
 
-NLCF programmes to research exhaustively:
-- Awards for All England (£300–£10,000, rolling deadline, very accessible for community groups)
-- National Lottery Community Fund standard grants (£10,001–£500,000)
-- Climate Action Fund (if still open or successor programme exists)
+NATIONAL LOTTERY PROGRAMMES:
+- Awards for All England (NLCF) -- 300-10,000, rolling, very accessible for community groups
+- NLCF standard grants -- 10,001-500,000
+- Climate Action Fund / successor programmes
 - People and Nature Fund
 - Community Led Place programme
 - Reaching Communities England
-- Fulfilling Lives
-- Together for Our Planet (if active)
-- The National Lottery Heritage Fund — Landscape Connections, National Lottery Grants for Heritage
-- People's Postcode Lottery — Dream Fund, Green Communities
+- National Lottery Heritage Fund -- Landscape Connections, Grants for Heritage
+- People's Postcode Lottery -- Dream Fund, Green Communities
 - Big Lottery Fund legacy programmes still disbursing
 
-For each, search:
-1. Is it currently open?
-2. What are the exact eligibility criteria — can a parish council committee apply?
-3. What are the minimum and maximum award amounts?
-4. What is the deadline or is it rolling?
-5. What geographic restrictions apply — England only, or Norfolk priority?
-6. What types of projects are funded?
-7. What is the direct application URL?
-
-Be systematic. Search for each programme by name. If you find a programme has closed,
-check whether a successor programme has replaced it.
-""",
-    },
-    {
-        "name": "government_nature",
-        "label": "UK Government — Nature, Forestry & Environment",
-        "focus": """
-You are an expert UK environmental fundraiser researching UK government grant programmes
-for nature, forestry and environment that HEAT/HEAG in Hethersett could access.
-
-Programmes to research exhaustively:
-- England Woodland Creation Offer (EWCO) — Forestry Commission, can community groups apply?
-- Urban Tree Challenge Fund — trees in towns, who is eligible?
-- Woodland Creation Planning Grant
-- Woodland Creation Accelerator Fund
-- Nature for Climate Fund — community strand
-- Green Recovery Challenge Fund — check if reopened or has successor
-- Biodiversity Net Gain (BNG) community fund streams — emerging since 2024 legislation
-- Community Forest England / Mercia Forest / Great North Woods (East of England?)
-- Trees for Climate (30by30 / Big Climate Fuss?)
-- Farming in Protected Landscapes (FIPL) — not applicable but check for edge cases
-- Higher Tier Countryside Stewardship — check if parish councils qualify
-- Landscape Recovery Scheme — check community involvement strand
-- Local Nature Recovery Strategies — are there associated funding pots?
-- Natural England facilitation funds
+UK GOVERNMENT -- NATURE, FORESTRY & ENVIRONMENT:
+- England Woodland Creation Offer (EWCO) -- Forestry Commission, can community groups apply?
+- Urban Tree Challenge Fund -- trees in towns
+- Woodland Creation Planning Grant and Accelerator Fund
+- Nature for Climate Fund -- community strand
+- Biodiversity Net Gain (BNG) community fund streams (post-2024 legislation)
+- Local Nature Recovery Strategies -- Norfolk LNRS associated funding pots?
+- Natural England facilitation funds and Access to Nature Fund
 - Environment Agency community flood action grants
-- DEFRA community grants via local authorities — pass-through funding
-- Biodiversity 2030 / 25 Year Environment Plan implementation grants
-- Tree Health Pilot grants (diseased tree replacement)
-- Hedgerow removal/replacement incentives
-- Blue Carbon / wetland community funds
-- Sustainable Farming Incentive (SFI) — Hethersett has local farmers; are community
-  groups or parish councils able to partner with farmers for SFI-funded hedgerow/
-  tree/biochar projects? Search "SFI community partnership grant"
-- Countryside Stewardship (Higher/Mid Tier) — hedgerow creation, agroforestry, biochar
-  application, reduced tillage; can parish councils/community groups enter agreements?
-  (Hethersett's action plan specifically models 10,000 m² hedgerow + 100 km² biochar)
-- Landscape Recovery Scheme — community-led or farmer-led; South Norfolk eligibility
-- Nature Recovery Projects (NRP) — small grants for nature recovery actions
-- Local Nature Recovery Strategy (LNRS) Norfolk — any associated community funding pots
-- Biodiversity Net Gain (BNG) off-site habitat creation — can HEAT/HEAG act as habitat
-  bank for BNG credits from Taylor Wimpey / Persimmon developments in Hethersett?
-- Natural England BNG habitat bank community grants
-- Community Forest England — East of England / Anglia connections?
-- Miyawaki forest grants — any specific programme for dense urban micro-forests
-  (Hethersett action plan specifically mentions Miyawaki forests in built areas)
-- Green social prescribing pilot — nature-based health interventions community grants
-- Access to Nature Fund (Natural England) — connecting communities with nature
-- Defra Environmental Improvement Plan community implementation grants
+- DEFRA community grants via local authorities
+- Higher Tier Countryside Stewardship -- parish council eligibility?
+- Landscape Recovery Scheme -- community-led strand
+- Countryside Stewardship hedgerow/agroforestry/biochar -- community group farm partnerships
+- SFI (Sustainable Farming Incentive) community partnerships with local Hethersett farmers
+- Green social prescribing pilot -- nature-based health interventions
+- Miyawaki forest grants -- dense urban micro-forests
 
-Search for each by name. Verify current status. Note if a programme requires a
-landowner applicant vs. allows community groups.
+UK SHARED PROSPERITY & RURAL:
+- UK Shared Prosperity Fund (UKSPF) environmental/community strands via New Anglia LEP
+- Rural England Prosperity Fund (REPF) -- South Norfolk allocation
+- LEADER Local Action Group for South Norfolk -- current programme, eligible projects
+
+For each programme: is it currently open? Can a parish council committee or community
+group apply? Min/max amounts? Deadlines? Direct application URL?
 """,
     },
     {
-        "name": "energy_netzero",
-        "label": "Energy Efficiency, Heat & Net Zero Schemes",
+        "name": "energy_climate",
+        "label": "Energy, Climate & Net Zero",
         "focus": """
-You are an expert in UK energy efficiency funding researching grants for net zero community
-projects that HEAT/HEAG in Hethersett could access.
+You are an expert in UK energy and climate funding researching grants for HEAT/HEAG
+in Hethersett, Norfolk -- a group planning a community solar farm, community wind turbine,
+30+ EV charge points, 200 e-bikes, heat pump promotion, and insulation schemes.
 
-Programmes to research exhaustively:
-- Community Energy Fund (DESNZ) — current rounds open?
-- Community Energy England grant schemes and competitions
-- Great British Insulation Scheme (GBIS) — community referral or coordinator role?
-- ECO4 (Energy Company Obligation 4) — community targeting, flex mechanism
-- Warm Homes Plan / Local Grant (successor to Green Homes Grant)
-- Warm Homes: Social Housing Fund (Wave 2/3)
-- Boiler Upgrade Scheme — homeowner-facing but community facilitation grants?
-- Heat Network Transformation Programme — community heat networks
-- Low Carbon Workspaces (East of England-based?) — if HQ/PC office exists
-- Salix Finance — public sector energy efficiency loans/grants (parish councils?)
-- SSEN / National Grid / NGED (National Grid Electricity Distribution) community fund
-- OVO Foundation grants
-- Octopus Energy community grants
-- E.ON Next Community Fund
-- EDF Energy community programmes
-- British Gas / Centrica community fund
-- Shell / BP (declining but check) community energy grants
-- Innovate UK Net Zero Living competitions
-- Innovate UK Smart Local Energy Systems
-- Retrofit Works / PAS2035 funding streams for communities
-- Local Authority Delivery Scheme (LAD) successors
-- Heat Network Zoning community engagement funds
-- Electric Vehicle Infrastructure funding (OZEV/DVLA community EV grants)
-- LEVI (Local Electric Vehicle Infrastructure) Fund — parish councils / local authorities
-- On-street Residential Charge Point Scheme (ORCS) — parish council car parks eligible?
-- Workplace Charging Scheme — if parish office has parking
-- Active Travel England — e-bike, pedestrian and cycling grants with net zero angle
-- Active Travel England Capability & Ambition Fund — for rural communities
-- Cycling and Walking Investment Strategy (CWIS) community grants
-- Cycle to Work community equivalents
-- Warm Homes: Local Grant (successor to LAD; for councils to deliver to households)
-- Warm Homes Plan — confirm current status and community group role
-- Salix Finance — public sector energy efficiency loans/grants; can parish councils apply?
-- Heat Network Zoning community engagement funds
-- UKRI / Innovate UK Net Zero Living — local net zero demonstration projects
-- Innovate UK Smart Local Energy Systems — community energy projects
-- Community Energy Fund (DESNZ) — solar farm, community wind turbine feasibility grants
-  (Hethersett is planning a community solar farm and community wind turbine)
-- Rural Community Energy Fund (RCEF) — feasibility and development grants for community
-  energy projects in rural areas; RCEF Phase 3 / current successor; up to £40,000 feasibility
-- Community Renewable Energy (CRE) programme — any current iteration
-- Heat Pump Ready programme — community facilitation grants
-- Boiler Upgrade Scheme (BUS) — £7,500 per heat pump; community group can signpost/refer
-  residents; any facilitation grant for community groups promoting BUS uptake?
-- Great British Insulation Scheme (GBIS) — targeting low-EPC homes; community groups
-  can play coordinator role; search for GBIS community facilitator grants
-- ECO4 Flex — community targeting mechanism; any grant to community groups for
-  identifying and referring households
+COMMUNITY ENERGY & RENEWABLES:
+- Rural Community Energy Fund (RCEF) -- up to 40,000 feasibility for community solar/wind
+- Community Energy Fund (DESNZ) -- current rounds, feasibility and development grants
+- Community Renewable Energy (CRE) programme -- any active iteration
+- Innovate UK Net Zero Living and Smart Local Energy Systems -- local demonstration projects
+- UKRI / Research England engaged research fund -- Hethersett has a live UEA partnership
+- UK Energy Research Centre (UKERC) community partner funding
+- Horizon Europe / Innovate UK community net zero project funding
+
+ENERGY EFFICIENCY & HEAT:
+- Great British Insulation Scheme (GBIS) -- community coordinator/facilitator grants
+- ECO4 Flex -- community group targeting mechanism grants for identifying households
+- Warm Homes Plan / Local Grant -- community group role, current status
+- Boiler Upgrade Scheme -- community facilitation grants for promoting uptake
+- Heat Network Transformation Programme -- community heat networks
+- Heat Pump Ready programme -- community facilitation grants
+- Salix Finance -- parish council energy efficiency loans/grants
+- Low Carbon Workspaces (East of England) -- if parish office qualifies
+- Heat Geek / heat pump installer training grants -- workforce upskilling fund
 - Retrofit Works / PAS2035 community facilitation grants
-- Carbon Literacy community engagement grants
-- Miyawaki forest establishment grants — innovative urban forestry grants
-- Community composting infrastructure grants
+
+ELECTRIC VEHICLES & ACTIVE TRAVEL:
+- LEVI Fund (Local Electric Vehicle Infrastructure) -- parish council car park eligibility
+- On-street Residential Charge Point Scheme (ORCS) -- parish council car parks eligible?
+- Active Travel England Capability & Ambition Fund -- e-bike, cycling, rural communities
+- Cycling and Walking Investment Strategy (CWIS) community grants
+- E-bike community scheme grants -- any programme for community e-bike fleets
+
+CLIMATE ACTION SPECIALISTS:
+- Ashden Awards and grants -- community climate action
+- Climate Emergency Fund (CEF) -- community climate mobilisation
+- Transition Network / Transition Towns grants
+- Carbon Literacy Project -- community engagement funding
+- WRAP -- community waste/circular economy grants
+- Hubbub Foundation -- community environmental behaviour change
+- Climate Outreach -- community communication grants
+- Friends of the Earth Local Groups grants
+- 10:10 / Possible community action grants
+- Great Big Green Week / Climate Coalition community action grants
 
 For each: current status, who can apply, amounts, deadlines, application URL.
 """,
     },
     {
-        "name": "wildlife_charities",
-        "label": "Wildlife & Nature Charities",
+        "name": "nature_wildlife",
+        "label": "Nature, Biodiversity & Green Spaces",
         "focus": """
-You are an expert in UK wildlife charity funding researching grants for nature/biodiversity
-projects that HEAT/HEAG in Hethersett, Norfolk could access.
+You are an expert in UK wildlife and nature charity funding researching grants for
+HEAT/HEAG in Hethersett, Norfolk -- a group planning 100,000 trees by 2030, rewilding,
+community orchards, Miyawaki micro-forests, hedgerows, biochar projects, and bee hives.
 
-Organisations and programmes to research:
-- Norfolk Wildlife Trust — local grants, Living Landscapes, volunteer support
-- RSPB — community conservation grants, Local Group funding, Giving Nature a Home
+WILDLIFE & NATURE CHARITIES:
+- Norfolk Wildlife Trust -- local grants, Living Landscapes, volunteer support
+- RSPB -- community conservation grants, Giving Nature a Home, Local Group funding
 - Wildlife Trusts national grants (separate from Norfolk WT)
-- Woodland Trust — MOREwoods (free trees for landowners/communities), MOREhedges
-- Trees for Cities — urban tree planting grants for community groups
-- The Tree Council — community tree growing and care grants
-- Buglife — B-Lines community grants, pollinator corridor funding
-- Butterfly Conservation — community habitat grants
-- Plantlife — wild plants/meadows community grants
-- Froglife — amphibian/reptile habitat community grants
-- People's Trust for Endangered Species (PTES) — community grants
-- British Trust for Ornithology (BTO) — survey funding, Breeding Bird Survey support
-- Wild Anglia (Norfolk and Suffolk nature partnership) — any community grants?
-- Broads Authority — any grants extending to South Norfolk area?
-- Natural Cambridgeshire / Cambridge Nature Network adjacent?
-- Rivers Trust — community river/catchment grants, Norfolk rivers
-- Wildfowl & Wetlands Trust (WWT) — community wetland projects
+- Woodland Trust -- MOREwoods (free trees for communities), MOREhedges
+- Trees for Cities -- urban tree planting grants for community groups
+- The Tree Council -- community tree growing and care grants
+- Buglife -- B-Lines community grants, pollinator corridor funding
+- Butterfly Conservation -- community habitat grants
+- Plantlife -- wild plants/meadows community grants
+- Froglife -- amphibian/reptile habitat grants
+- People's Trust for Endangered Species (PTES)
+- British Trust for Ornithology (BTO) -- survey funding
+- Broads Authority -- any grants extending to South Norfolk?
+- Wild Anglia (Norfolk and Suffolk nature partnership) -- community grants?
+- Rivers Trust -- community catchment/river grants, Norfolk rivers
+- Wildfowl & Wetlands Trust (WWT) -- community wetland grants
+- Rewilding Britain -- community rewilding support grants
+- Heal Rewilding -- land/community grants
+- Saving Nature -- species recovery community grants
+- Biffa Award -- biodiversity, community, ecology (via ENTRUST / landfill tax)
+- Landfill Communities Fund / ENTRUST -- projects near landfill sites
 - Environment Agency Fisheries Improvement Programme
-- Angling Trust — community water quality/habitat grants
-- Rewilding Britain — community rewilding support grants
-- Heal Rewilding — land/community grants
-- Saving Nature — species recovery community grants
-- Marine Conservation Society (any freshwater/terrestrial strand)
 
-For each, check: Are they currently open? Can a village community group apply?
-What is the maximum award? Is there a Norfolk/East Anglia geographic priority?
+SPECIFIC PROJECT GRANTS (match the Hethersett action plan):
+- Community composting infrastructure grants -- 3 composting sites planned
+- Community beekeeping grants -- 10 hives planned 2026-2028
+- Community orchard and edible hedge grants -- edible hedges on public land
+- Biochar in agriculture grants -- search "biochar agricultural grant UK community 2025"
+- Community allotment and food growing grants -- 1,000m2 allotments planned
+- School / youth nature engagement grants -- outdoor learning, STEM visits
+- Citizen science / community monitoring grants -- UEA engagement observatory
+
+For each: currently open? Can a village community group apply? Maximum award?
+Any Norfolk/East Anglia geographic priority? Direct application URL?
 """,
     },
     {
-        "name": "community_charities",
-        "label": "Community Development & Action Charities",
+        "name": "community_norfolk",
+        "label": "Community, Local & Norfolk Funders",
         "focus": """
-You are an expert in UK community development funding researching grants for community
-environmental projects that HEAT/HEAG in Hethersett could access.
+You are an expert in Norfolk and community grant funding researching local and
+hyperlocal grants for HEAT/HEAG in Hethersett, South Norfolk.
 
-Organisations and programmes to research:
-- Groundwork UK national grants and competitions
-- Groundwork East (the regional trust covering Norfolk) — local programmes
-- The Conservation Volunteers (TCV) — community green space grants
-- Keep Britain Tidy — Eco-Schools grants, LEAF award funding, green flag communities
-- Community First Norfolk — local grants for Norfolk community groups
-- CPRE (Campaign to Protect Rural England) Norfolk — local grants or support
-- Voluntary Norfolk — capacity-building and environmental grants
-- Norfolk Community Foundation — specific funds relevant to environment
-- Community Action Norfolk — grants for rural community groups
-- NCVO community grants database — any environment-specific pots
-- Action with Communities in Rural England (ACRE) — rural community grants
-- Rural Community Council of Essex (RCCE) — adjacent, cross-boundary grants
-- Community First Responders / Community First — environment strands
-- Locality — community asset transfer grants, community power fund
-- Power to Change — community business grants (if HEAG incorporates)
-- Social Investment Business — community energy investment
-- Access Social Care (if any social/environment overlap)
-- Community Led Homes (if any eco-housing angle)
-- Cohousing Association grants
-- Village halls / community building energy grants (if parish has a hall)
-- Playing Fields Association grants with environmental angle
-- Fields in Trust — green space protection and improvement grants
-- Civic Voice community improvement grants
-- Design Council Place Programme (if redesigning village spaces)
-- Community orchard grants — any specific programme for community orchards / edible hedges
-  (Hethersett action plan includes community orchard and edible hedges on public land)
-- People Planet Pint / community climate events funding — any grant for informal
-  community climate gatherings and events
-- Community allotment and food growing grants — 1,000 m² allotments planned 2025–2027
-- Repair café / zero waste shop grants — plan includes zero waste shop and repair shop
-- Community beekeeping grants — 10 hives planned 2026–2028; search "beekeeping community
-  grant UK 2024 2025"
-- School / youth engagement nature grants — plan includes school trips, STEM visits,
-  outdoor learning; search "school nature visits grant UK community group 2025"
-- Public engagement / citizen science grants — UEA partnership monitors community
-  engagement with net zero; search "citizen science community grant net zero 2025"
-- Place-based community resilience grants — NHS social prescribing, active travel,
-  green spaces combined; the plan has an explicit health/wellbeing angle
-- Sharing economy / library of things grants — plan includes sharing economy and
-  repair shop; search "library of things community grant UK"
-- Community film screening grants — plan mentions film screenings (Wilding, Six Inches
-  of Soil) for public engagement; any grant for community environmental film events?
+COMMUNITY DEVELOPMENT ORGANISATIONS:
+- Groundwork UK / Groundwork East -- local community green space, environment programmes
+- The Conservation Volunteers (TCV) -- community green space grants
+- Keep Britain Tidy -- Eco-Schools, green flag communities
+- Community First Norfolk -- local Norfolk grants for community groups
+- Voluntary Norfolk -- capacity-building and environmental grants
+- Community Action Norfolk -- rural community group grants
+- Norfolk Community Foundation -- current open funds (environment, place, wellbeing)
+- Fields in Trust -- green space protection and improvement grants
+- Locality -- community asset transfer, community power fund
+- Power to Change -- community business grants (if HEAG incorporates as community business)
 
-Search for current open calls, rolling programmes, annual competitions.
-Focus on what's accessible for a volunteer-led parish-council-backed group.
+NORFOLK & REGIONAL FUNDERS:
+- Norfolk County Council -- environmental grants, climate change fund, parish support
+- South Norfolk and Breckland Council -- environmental improvements, community grants
+- New Anglia LEP -- UKSPF environmental/community strands
+- Rural England Prosperity Fund (REPF) -- South Norfolk allocation
+- LEADER Local Action Group for South Norfolk -- current programme
+- Norfolk Rural Community Council (NRCC) -- grants, loan funds, support
+- Anglian Water -- Caring for our Catchments community grants
+- Active Norfolk -- physical activity/active travel grants
+- Greater Norwich Growth Board -- does Hethersett qualify?
+
+OFFSHORE WIND COMMUNITY BENEFIT FUNDS -- HIGH PRIORITY:
+Hethersett is within the benefit zone of multiple offshore wind projects off Norfolk.
+Research ALL of these -- geographic eligibility is critical:
+- Orsted Hornsea Three (H3) Community Benefit Fund -- annual pot, geographic eligibility, how to apply
+- Orsted Hornsea Four (H4) -- any community fund announced?
+- Norfolk Vanguard Offshore Wind Farm (Vattenfall) -- fund details, Hethersett/South Norfolk eligible?
+- Norfolk Boreas Offshore Wind Farm (Vattenfall) -- fund details, eligibility
+- Dudgeon Offshore Wind Farm (Equinor) -- community fund, how to apply
+- Sheringham Shoal (Equinor/Scatec) -- community benefit fund
+- Race Bank (Orsted) -- community fund details
+- East Anglia ONE/TWO (ScottishPower Renewables) -- Norfolk community fund eligibility
+- Triton Knoll (RWE) -- check South Norfolk eligibility
+For each: fund size per year, geographic eligibility area (miles from landfall or grid connection),
+grant size range, application process, current open/closed status.
+
+ROAD SCHEME & DEVELOPER COMMUNITY FUNDS:
+- National Highways A47 Community Fund -- is Hethersett within eligible area?
+- National Highways Environmental Mitigation Fund -- tree/biodiversity near road corridors
+- Norwich Western Link community mitigation fund
+
+DEVELOPER CONTRIBUTIONS -- HETHERSETT SPECIFIC:
+- Section 106 agreements: Taylor Wimpey and Persimmon are actively building in Hethersett.
+  What environmental/community obligations exist? How does HEAT/HEAG access this money?
+- South Norfolk CIL (Community Infrastructure Levy) -- neighbourhood portion (15-25%)
+  goes to the parish council. How does HEAT/HEAG bid for it?
+- Taylor Wimpey Community Fund -- any Hethersett or Norfolk site-specific allocation
+- Persimmon Communities Fund -- Hethersett or South Norfolk site-specific fund
+- Biodiversity Net Gain (BNG) -- can Hethersett parish create BNG habitat units from
+  Taylor Wimpey/Persimmon developments and access associated habitat bank funding?
 """,
     },
     {
-        "name": "norfolk_regional",
-        "label": "Norfolk & Regional Funders",
+        "name": "trusts_corporate",
+        "label": "Major Trusts & Corporate Grants",
         "focus": """
-You are an expert in Norfolk and East Anglia grant funding researching local grant programmes
-that HEAT/HEAG in Hethersett, South Norfolk could access.
+You are an expert UK fundraiser researching large charitable trusts and corporate
+grant programmes for HEAT/HEAG in Hethersett -- a community environmental group
+with a parish council mandate and a live UEA academic partnership.
 
-Funders and programmes to research exhaustively:
-- Norfolk County Council — environmental grants, climate change fund, parish support grants
-- South Norfolk and Breckland Council — environmental improvements, community grants
-- New Anglia LEP — UKSPF (UK Shared Prosperity Fund) environmental / community strands
-- Rural England Prosperity Fund (REPF) — South Norfolk allocation, project criteria
-- LEADER Local Action Group for South Norfolk — current programme, eligible projects
-- England Rural Development Programme successor — any community grants
-- Norfolk Community Foundation — current open funds (environment, place, wellbeing)
-- Community Foundation for Suffolk — cross-border applicants?
-- East of England Agricultural Society / RASE — community agriculture/environment grants
-- Norfolk Rural Community Council (NRCC) — grants, loan funds, support
-- Anglia Water (AWE) Caring for our Catchments / community grants
-- Broads Authority (is Hethersett near Broads area?) — if eligible, check grants
-- Historic England / Heritage England — any environment/landscape grants for Norfolk
-- East of England Development Agency successors — any residual community funds
-- Greater Norwich Growth Board — adjacent area, check if Hethersett qualifies
-- South Norfolk Partnership — any environmental improvement funding
-- Norfolk & Waveney Integrated Care System — if health/environment overlap
-- Active Norfolk — physical activity/active travel grants with green angle
-- Sport England — green infrastructure/active space grants
-- Active Norfolk — physical activity/active travel grants with green angle
-- Sport England — green infrastructure/active space grants
-- Network Rail community funds (if near railway)
-- Armed Forces Covenant Fund Trust (if any military connection in village)
+MAJOR INDEPENDENT TRUSTS:
+- Esmee Fairbairn Foundation -- environment and natural world strand (strong Norfolk interest)
+- Garfield Weston Foundation -- community environment projects
+- Tudor Trust -- smaller community grants
+- Dulverton Trust -- rural environment, nature conservation (excellent match for Hethersett)
+- Ernest Cook Trust -- rural environment, education in nature
+- Waterloo Foundation -- climate and environment
+- John Ellerman Foundation -- natural environment strand
+- Calouste Gulbenkian Foundation UK -- arts/environment/community
+- Paul Hamlyn Foundation -- community/youth/environment
+- Wates Family Enterprise Trust -- community/environment
+- Zurich Insurance Foundation -- climate resilience community grants
+- Aviva Foundation -- environment/community
+- Henry Smith Charity -- community grants
+- Rank Foundation -- youth/community/environment
+- Nationwide Foundation -- energy poverty/environment overlap
+- Joseph Rowntree Foundation -- climate justice, community power
 
-OFFSHORE WIND COMMUNITY BENEFIT FUNDS — HIGH PRIORITY:
-Hethersett sits within the benefit zone of multiple offshore wind projects off the Norfolk
-coast. Each project carries a statutory community benefit fund obligation. Research ALL of:
-- Ørsted Hornsea Three (H3) Community Benefit Fund — off Norfolk/Lincolnshire, one of the
-  largest wind farms in the world; what is the annual community pot? Who can apply?
-  What is the geographic eligibility zone — does Hethersett / South Norfolk qualify?
-- Ørsted Hornsea Four (H4) — any associated community fund announced yet?
-- Norfolk Vanguard Offshore Wind Farm (Vattenfall) — community benefit fund details,
-  eligibility area, how to apply, current round status
-- Norfolk Boreas Offshore Wind Farm (Vattenfall) — same questions
-- Dudgeon Offshore Wind Farm (Statoil/Equinor) — community fund, how to apply
-- Sheringham Shoal Offshore Wind Farm (Equinor / Scatec) — community benefit fund
-- Race Bank Offshore Wind Farm (Ørsted) — community fund details
-- East Anglia ONE (ScottishPower Renewables) — community benefit fund, Norfolk eligibility
-- East Anglia TWO (ScottishPower Renewables) — same
-- East Anglia Hub / THREE — if under construction, any community funds announced?
-- Dudgeon Extended (if applicable) — community fund
-- Triton Knoll (RWE) — near Lincolnshire/Norfolk border, check eligibility for South Norfolk
-- Search broadly: "offshore wind community benefit fund Norfolk 2024 2025 apply"
-- Search: "Vattenfall Norfolk community fund apply"
-- Search: "Ørsted Hornsea community benefit fund apply 2024"
+SUPERMARKETS & RETAIL:
+- Tesco Community Grants (Bags of Help via Groundwork) -- current round open?
+- Asda Foundation -- community grants, environment strand
+- Sainsbury's Community Investment -- local grant schemes
+- Co-op Foundation -- community and climate grants
+- Waitrose & Partners Foundation -- local community/environment
+- Morrisons Foundation -- community grants
 
-For each offshore wind fund, establish: fund size per year, geographic eligibility area
-(typically stated in miles from landfall or grid connection point), grant size range,
-application process, and current open/closed status.
-
-NATIONAL HIGHWAYS / MAJOR ROAD SCHEME FUNDS:
-There are major road schemes near Hethersett — the Norwich Western Link, A47 dualling,
-and NDR-related works. National Highways and Norfolk County Council manage associated
-community and environmental mitigation funds. Research:
-- National Highways A47 Community Fund — communities affected by the A47 improvement
-  scheme; is Hethersett within the eligible area? Grant sizes, application process
-- National Highways Community Fund (general programme) — what communities near major road
-  schemes can apply for; search "National Highways community fund Norfolk apply"
-- National Highways Environmental Mitigation Fund — green/biodiversity projects near
-  road corridors; tree planting, noise bunds, wildflower verges
-- Norwich Western Link community mitigation fund — any community benefit fund associated
-  with this scheme; search "Norwich Western Link community fund environmental"
-- Norfolk County Council road scheme community grants — any parish grants associated
-  with NDR (Northern Distributor Road) successor schemes
-- Search: "A47 dualling community benefit fund Norfolk"
-- Search: "National Highways community fund A47 Norfolk parish"
-- Highways England / National Highways biodiversity net gain fund — projects must
-  compensate for habitat lost to road building; community groups can sometimes deliver
-
-DEVELOPER CONTRIBUTIONS — TAYLOR WIMPEY & PERSIMMON:
-Hethersett has active housing development by Taylor Wimpey and Persimmon. Each planning
-consent generates Section 106 and/or CIL obligations. Research:
-- Section 106 agreements for Taylor Wimpey development(s) in Hethersett — what
-  environmental/community obligations exist? How does the parish access this money?
-  Search: "Taylor Wimpey Hethersett planning section 106 community environment"
-- Section 106 agreements for Persimmon development(s) in Hethersett — same
-  Search: "Persimmon Hethersett planning section 106 environmental contribution"
-- South Norfolk Community Infrastructure Levy (CIL) — how is the local portion
-  (typically 15–25% goes to the parish council) allocated? Can HEAT/HEAG bid for it?
-  Search: "South Norfolk CIL parish council allocation community projects"
-- Taylor Wimpey Community Fund — general programme, but also check if there is a
-  specific Hethersett site-linked fund; search "Taylor Wimpey Hethersett community fund"
-- Persimmon Communities Fund — check for Hethersett or South Norfolk site-specific
-  funding; search "Persimmon Hethersett community fund Norfolk"
-- Homes England Growth Funds — infrastructure alongside new housing
-- Search: "housebuilder community fund environmental South Norfolk 2024 2025"
-- Any planning conditions requiring ecological mitigation deliverable by community groups
-
-Be thorough. Search for each specifically. Norfolk has unique funding streams.
-""",
-    },
-    {
-        "name": "major_trusts",
-        "label": "Major Independent Grant-Making Trusts",
-        "focus": """
-You are an expert UK fundraiser researching large independent charitable trusts that fund
-environmental and community projects that HEAT/HEAG in Hethersett could apply to.
-
-Trusts and foundations to research:
-- Esmée Fairbairn Foundation — environment and natural world strand (large grants, strong Norfolk interest)
-- Garfield Weston Foundation — community environment projects
-- Tudor Trust — smaller grants, community groups
-- Nationwide Foundation — housing, energy poverty, environment overlap
-- Joseph Rowntree Foundation — climate justice, community power
-- Dulverton Trust — rural environment, nature conservation (excellent match)
-- Ernest Cook Trust — rural environment, education in nature
-- Waterloo Foundation — climate, Wales & beyond, any England strands?
-- Arcadia Fund — environment (large grants, check eligibility for small groups)
-- The Sigrid Rausing Trust — environment
-- Patagonia Environmental Grants — grassroots environment groups (US company, UK grants)
-- 11th Hour Project — climate/environment
-- John Ellerman Foundation — natural environment strand
-- Calouste Gulbenkian Foundation UK — arts/environment/community
-- Paul Hamlyn Foundation — community/youth/environment
-- Wellcome Trust — climate and health overlap grants
-- Wates Family Enterprise Trust — community/environment
-- Zurich Insurance Foundation — climate resilience community grants
-- Aviva Foundation — environment/community
-- Charities Aid Foundation — pass-through environment grants
-- Greggs Foundation — northern focus but check if national
-- Biffa Award (through Environmental Body) — biodiversity, community, ecology
-- Landfill Communities Fund / ENTRUST — projects near landfill sites
-- Aggregates Levy Sustainability Fund (ALSF) — near quarries?
-- Henry Smith Charity — community grants
-- Rank Foundation — youth/community/environment
-- St James's Place Foundation — community projects
-- abrdn Financial Fairness Trust — community resilience/environment
-- KPMG Foundation — community environment
-- Morgan Stanley UK Foundation — community projects
-
-Research: current open status, typical grant size, do they fund Norfolk/East Anglia,
-can parish council committees / voluntary groups apply, what evidence do they need?
-""",
-    },
-    {
-        "name": "corporate_csr",
-        "label": "Corporate & Energy Company Grant Programmes",
-        "focus": """
-You are an expert in corporate CSR grant programmes researching funding for community
-environmental projects that HEAT/HEAG in Hethersett could access.
-
-Companies and programmes to research:
-- Tesco Community Grants (Bags of Help via Groundwork) — current round open?
-- Tesco Stronger Starts — food/community angle
-- Asda Foundation — community grants, environment strand
-- Sainsbury's — Community Investment, local grant schemes
-- Co-op Foundation — community and climate grants
-- Waitrose & Partners Foundation — local community/environment
-- Morrisons Foundation — community grants
-- Persimmon Communities Fund — Persimmon IS actively building in Hethersett; search for
-  site-specific or county-level fund; "Persimmon community fund Norfolk Hethersett"
-- Taylor Wimpey Community Fund — Taylor Wimpey IS actively building in Hethersett; search
-  for their community fund programme and any Norfolk/Hethersett allocation;
-  "Taylor Wimpey community fund apply Norfolk"
-- Ørsted UK Community Fund / Hornsea Community Benefit Fund — Ørsted operates Hornsea
-  offshore wind off the Norfolk coast; search specifically for their community benefit
-  fund for Norfolk communities; "Ørsted Hornsea community fund Norfolk apply"
-- Vattenfall Norfolk Vanguard / Norfolk Boreas Community Fund — Vattenfall has two major
-  wind farms off Norfolk; search for their community benefit fund for local groups
-- Bovis Homes / Vistry / Bellway / Barratt — check for any other active sites near Hethersett
-- E.ON Next Community Fund — current round?
-- OVO Foundation/OVO Energy community grants
+ENERGY COMPANIES & UTILITIES:
+- E.ON Next Community Fund -- current round status
+- OVO Foundation / OVO Energy community grants
 - Octopus Energy community grants (Green Octopus?)
 - British Gas / Centrica community grants
 - EDF Energy community fund
-- SSE/SSEN Community Fund
+- SSE / SSEN Community Fund
 - Scottish Power community grants
 - National Grid community fund
-- Anglian Water community fund and conservation grants
-- Affinity Water grants (if applicable)
-- Severn Trent — not Norfolk but check cross-boundary
-- Amazon Sustainability — community grants
-- Google.org — climate/environment community grants
-- Microsoft Climate Innovation Fund — community projects
-- Apple (MFR environmental grants) — check
-- Lloyds Bank Foundation — community grants
-- NatWest Group Foundation — environment/community
-- Barclays Community Finance / 100x100
-- HSBC UK community grants
-- Vodafone Foundation — community/environment
-- BT Better Futures — digital/environment community grants
-- Network Rail Lineside community grants
-- Transport for London / Highways England community environmental mitigations
-
-For each, research: Is a programme currently open? What size grants?
-Does it match environment/community projects? Any Norfolk preference?
-""",
-    },
-    {
-        "name": "climate_specialist",
-        "label": "Climate Action & Net Zero Specialist Funds",
-        "focus": """
-You are an expert in specialist climate action funding researching grants for net zero
-and climate action projects that HEAT/HEAG in Hethersett, Norfolk could access.
-
-Programmes and organisations to research:
-- Ashden Awards and grants — community climate action, outstanding organisations
-- Climate Emergency Fund (CEF) — community climate mobilisation grants
-- Zero Carbon Britain / Centre for Alternative Technology (CAT) grants
-- Transition Network / Transition Towns — grants for local transition groups
-- Community Climate Action Fund (any current iteration?)
-- 10:10 Climate Action grants
-- Friends of the Earth Local Groups grants
-- ClientEarth community grants
-- Stop Climate Chaos coalition — any grant-making?
-- Carbon Literacy Project — community engagement funding
-- Community Carbon reduction grants
-- Climate Outreach — community climate communication grants
-- NESTA — sustainable futures community innovation grants
-- Innovate UK Sustainable Innovation Fund — community projects
-- UK100 — local net zero community support
-- Possible / 10:10 — community action grants
-- Project Drawdown community implementation grants
-- WRAP (Waste & Resources Action Programme) — community waste/circular economy grants
-- Keep Britain Tidy — community litter/environment education grants
-- Hubbub Foundation — community environmental behaviour change
-- Ellen MacArthur Foundation — circular economy community grants
-- Forum for the Future — community sustainability grants
-- Green Alliance — community climate policy engagement
-- Behaviour Change — community environment grants
-- Julie's Bicycle — creative green / arts-environment grants
-- Climate Justice Fund — community climate grants (Scotland focus but check UK-wide)
-- Renewable UK community wind/solar grants
-- Solar Trade Association community grants
-- Battery storage community fund
-- Green Finance Institute — community green finance
+- Anglian Water conservation grants
 - Good Energy community grants
-- Triodos Foundation community grants
-- Ecology Building Society — green community building grants
-- UKRI / Research England community-academic partnership grants — Hethersett has a
-  live partnership with the UEA Public Engagement Observatory (UK Energy Research Centre);
-  search "UKRI community partner net zero grant" and "Research England engaged research fund"
-- NERC (Natural Environment Research Council) community science grants
-- ESRC (Economic and Social Research Council) community partner grants for energy/climate
-- Horizon Europe / Innovate UK community net zero project funding
-- UK Energy Research Centre (UKERC) community partner funding
-- People and Places Fund (UKRI) — community-academic net zero projects
-- Carbon Literacy Trust community grants
-- STEM learning / Climate Ambassador programme grants — for school engagement
-  (Hethersett action plan specifically plans STEM Ambassador school visits)
-- Great Big Green Week / COP community action grants (Climate Coalition)
-- Heat pump training / Heat Geek accreditation grants — workforce upskilling fund
-  (Action plan specifically calls for funding Heat Geek training for local installer)
-- Community Monitoring Network grants — biodiversity data, carbon tracking
 
-Search: current status, grant sizes, eligibility for Norfolk community groups.
+OFFSHORE WIND CORPORATE (confirm current rounds):
+- Orsted UK Community Fund -- Hornsea series Norfolk community fund
+- Vattenfall Norfolk Vanguard / Norfolk Boreas community fund
+- Triton Knoll (RWE) community fund
+
+TECH & BANKING:
+- Amazon Sustainability community grants
+- Google.org -- climate/environment community grants
+- Lloyds Bank Foundation -- community grants
+- NatWest Group Foundation -- environment/community
+- HSBC UK community grants
+
+For each: is the programme currently open? Grant sizes? Norfolk or rural preference?
+Can volunteer-led community groups with parish council backing apply?
 """,
     },
     {
         "name": "verify_enrich",
         "label": "Verify & Deepen the Most Promising Leads",
         "focus": """
-You are an expert UK grant fundraiser performing a deep verification pass on grants
+You are an expert UK grant fundraiser performing a verification pass on grants
 found for HEAT/HEAG in Hethersett, Norfolk.
 
-Your task is to search for the most important grant programmes in the UK environmental
-and community space and verify:
-1. Is the programme definitively still open as of 2024/2025?
+Your task: re-check the most important grant programmes and confirm:
+1. Is the programme definitively still open as of 2025?
 2. What is the EXACT maximum and minimum grant amount?
-3. Is there a confirmed application deadline or is it rolling?
+3. Is there a confirmed deadline or is it rolling?
 4. What is the direct URL to the application page (not just the homepage)?
-5. Are parish councils or community groups explicitly mentioned as eligible applicants?
-6. Has the programme changed name or moved to a new funder?
-7. Are there any tips or insider knowledge about what makes a strong application?
+5. Are parish councils or community groups explicitly mentioned as eligible?
+6. Has it changed name or moved to a new funder?
 
-Specifically re-check:
+PRIORITY RE-CHECKS:
 - Awards for All England (NLCF)
 - England Woodland Creation Offer (Forestry Commission)
-- Urban Tree Challenge Fund
-- Community Energy Fund (DESNZ)
-- Biffa Award
-- Tesco Bags of Help / Community Grants
-- Norfolk Community Foundation open funds
+- Rural Community Energy Fund (RCEF) -- Phase 3 / current successor
+- Community Energy Fund (DESNZ) -- latest round status
+- Norfolk Community Foundation -- current open funds
 - Groundwork East community grants
-- UK Shared Prosperity Fund through South Norfolk
-- LEADER South Norfolk
+- UK Shared Prosperity Fund / REPF via South Norfolk
+- LEADER South Norfolk -- current status
 - ECO4 Flex community targeting
-- E.ON Next Community Fund
-- Octopus Energy community grants
-- Any 2024/2025 new government net zero community schemes announced
+- E.ON Next Community Fund -- current round
+- Orsted Hornsea community benefit fund -- confirm Hethersett geographic eligibility zone
+- Vattenfall Norfolk Vanguard fund -- confirm South Norfolk eligibility
+- National Highways A47 community fund -- does Hethersett qualify?
+- South Norfolk CIL neighbourhood portion -- how does HEAT/HEAG access it?
+- Taylor Wimpey Hethersett community fund -- confirm site-specific programme
+- Active Travel England grants for parish council e-bike / active travel schemes
+- LEVI Fund / ORCS -- EV charger grants for parish council car parks
+- Biffa Award -- current round open?
+- Tesco Community Grants (Bags of Help) -- current round?
 
-PRIORITY VERIFICATION — LOCAL NORFOLK FUNDS:
-These are high-value, locally specific funds that must be verified carefully:
-- Ørsted Hornsea Three community benefit fund — confirm it exists, the geographic
-  eligibility radius, annual pot size, how to apply; search "Ørsted Hornsea community
-  fund Norfolk" and "Hornsea Three community benefit fund apply"
-- Vattenfall Norfolk Vanguard community benefit fund — confirm details, is Hethersett
-  (South Norfolk) within eligible area?; search "Vattenfall Norfolk Vanguard community fund"
-- National Highways A47 community fund — confirm programme exists for affected Norfolk
-  communities; what can the money fund?; search "National Highways A47 Norfolk community fund"
-- Taylor Wimpey Hethersett — confirm their community fund programme, what Hethersett
-  residents can apply for; search "Taylor Wimpey community fund how to apply 2024 2025"
-- Persimmon Hethersett — confirm their Communities Fund programme details and whether
-  there is a site-specific allocation; search "Persimmon communities fund how to apply"
-- South Norfolk CIL — confirm that the parish council receives a neighbourhood portion
-  and how HEAT/HEAG can access it; search "South Norfolk CIL parish allocation 2024"
-
-PRIORITY VERIFICATION — ACTION PLAN SPECIFIC:
-These interventions are explicitly modelled in the Happy Healthy Hethersett Action Plan
-(April 2025) and need specific grant matches verified:
-
-- 100,000 trees by 2030 — verify EWCO, Urban Tree Challenge Fund, Woodland Trust MOREwoods
-  all currently open and that community groups / parish councils can access them
-- Community solar farm feasibility — verify Rural Community Energy Fund (RCEF) is open
-  and what a community in Hethersett specifically needs to do to apply
-- Community wind turbine feasibility — any current feasibility grant for community wind?
-- E-bike rental scheme (200 bikes planned) — verify Active Travel England grants for
-  e-bike community schemes; search "e-bike community scheme grant parish council UK 2025"
-- 30 fast + 10 rapid EV chargers — verify OZEV LEVI fund and ORCS scheme for parish
-  councils; search "parish council EV charger grant 2025 LEVI ORCS"
-- Heat Geek training for local installers — verify any specific workforce training grant;
-  search "heat pump installer training grant community 2025 UK"
-- Miyawaki forest — verify any specific grant programme for Miyawaki / dense urban forests;
-  search "Miyawaki forest grant UK community 2024 2025"
-- Community composting (3 sites planned) — verify community composting infrastructure grants
-- Biochar application (local farmers) — verify any grant for biochar in agriculture;
-  search "biochar agricultural grant UK community 2025"
-- BNG habitat creation — verify whether Hethersett parish can create BNG habitat units
-  from Taylor Wimpey / Persimmon developments and access associated funding
-- Norfolk Investment Framework — verify this is still active and can fund further work;
-  search "Norfolk Investment Framework community grants 2025"
-- UKRI / UEA partnership — verify any UKRI engaged research grants for community groups
-  partnering with universities on net zero; search "UKRI community partner net zero UEA 2025"
-- Warm Homes Local Grant — verify current status and whether parish councils can lead
-  applications for their communities; search "Warm Homes Local Grant 2025 parish council"
-
-Also search for:
-- "environmental grants open now UK 2025 community"
-- "new environmental grants announced 2025 UK government"
-- "net zero community grants England 2025 parish council"
-- "Norfolk community grants environment 2025"
-- "offshore wind community benefit fund Norfolk 2025"
-- "community energy fund 2025 rural community energy fund"
-- "Happy Healthy Hethersett HEAT HEAG grant"
+Also search for any new government net zero or community environment grants
+announced in 2025 that were not in earlier results.
 
 Return a final comprehensive JSON list of all verified grants.
 """,
@@ -963,9 +679,12 @@ def research_grants_deep(
     phases_to_run: if provided, only run these phase names (useful for resuming).
     known_funders: funders already in the database — the agent will skip them.
     """
+    # verify_enrich always runs last; other phases filtered by user selection
     active_phases = [
         p for p in PHASES
-        if phases_to_run is None or p["name"] in phases_to_run
+        if p["name"] == "verify_enrich"
+        or phases_to_run is None
+        or p["name"] in phases_to_run
     ]
 
     all_grants: list[dict] = []

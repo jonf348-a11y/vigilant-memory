@@ -138,7 +138,7 @@ def _get_known_funders() -> list[str]:
         return list({g.funder for g in existing if g.funder})
 
 
-def run_grant_search(job_id: int, focus_areas: list[str]):
+def run_grant_search(job_id: int, phase_names: Optional[list[str]] = None):
     with Session(engine) as session:
         job = session.get(SearchJob, job_id)
         if not job:
@@ -155,7 +155,7 @@ def run_grant_search(job_id: int, focus_areas: list[str]):
 
     try:
         known_funders = _get_known_funders()
-        grants = research_grants_deep(focus_areas, progress, known_funders=known_funders)
+        grants = research_grants_deep([], progress, known_funders=known_funders, phases_to_run=phase_names)
         total_saved = _save_grants_batch(grants)
 
         with Session(engine) as s:
@@ -294,12 +294,12 @@ def start_grant_search(
                 ),
             )
 
-    job = SearchJob(focus_areas=json.dumps(request.focus_areas), search_type="full")
+    job = SearchJob(focus_areas=json.dumps(request.phase_names or []), search_type="full")
     session.add(job)
     session.commit()
     session.refresh(job)
 
-    background_tasks.add_task(run_grant_search, job.id, request.focus_areas)
+    background_tasks.add_task(run_grant_search, job.id, request.phase_names)
     return {"job_id": job.id, "status": "pending"}
 
 

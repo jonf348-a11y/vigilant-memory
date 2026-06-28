@@ -63,17 +63,7 @@ class GrantUpdate(SQLModel):
 
 
 class SearchRequest(SQLModel):
-    focus_areas: list[str] = [
-        "tree planting",
-        "rewilding",
-        "solar energy",
-        "insulation",
-        "heat pumps",
-        "biodiversity",
-        "community education",
-        "electric vehicles",
-        "net zero",
-    ]
+    phase_names: Optional[list[str]] = None  # if None, run all phases except verify_enrich
 
 
 class TargetedSearchRequest(SQLModel):
