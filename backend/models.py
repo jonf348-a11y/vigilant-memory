@@ -35,6 +35,7 @@ class SearchJob(SQLModel, table=True):
     focus_areas: str = "[]"  # JSON array
     status: str = "pending"  # pending, running, complete, failed
     search_type: str = Field(default="full")  # "full" or "targeted"
+    question: Optional[str] = None  # for targeted searches
     current_phase: Optional[str] = None
     phases_done: str = "[]"   # JSON list of completed phase names
     grants_found: int = 0

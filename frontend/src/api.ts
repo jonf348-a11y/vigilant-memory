@@ -50,6 +50,15 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ question }),
     }),
+  getRecentTargetedSearches: () =>
+    req<{
+      job_id: number;
+      question: string;
+      completed_at: string;
+      days_since: number;
+      days_remaining: number;
+      grants_found: number;
+    }[]>("/search/targeted/recent"),
   getSearchStatus: (jobId: number) => req<SearchJob>(`/search/${jobId}`),
 
   // Application helper

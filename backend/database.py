@@ -15,11 +15,15 @@ def _migrate():
     """Add columns that did not exist in earlier schema versions."""
     from sqlalchemy import text
     with engine.connect() as conn:
-        try:
-            conn.execute(text("ALTER TABLE searchjob ADD COLUMN search_type TEXT DEFAULT 'full'"))
-            conn.commit()
-        except Exception:
-            pass  # Column already exists
+        for stmt in [
+            "ALTER TABLE searchjob ADD COLUMN search_type TEXT DEFAULT 'full'",
+            "ALTER TABLE searchjob ADD COLUMN question TEXT",
+        ]:
+            try:
+                conn.execute(text(stmt))
+                conn.commit()
+            except Exception:
+                pass  # Column already exists
 
 
 def get_session():

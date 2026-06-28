@@ -25,6 +25,31 @@ from agent import research_grants_deep, research_targeted, chat_with_assistant, 
 
 SEARCH_COOLDOWN_DAYS = 30
 
+_STOP_WORDS = {
+    "a", "an", "the", "for", "to", "in", "of", "and", "or", "on", "at",
+    "is", "are", "can", "do", "how", "what", "where", "which", "who",
+    "with", "that", "this", "it", "by", "from", "as", "if", "any", "all",
+    "about", "us", "uk", "me", "i", "find", "search", "grant", "grants",
+    "funding", "fund", "help",
+}
+
+
+def _keywords(text: str) -> set[str]:
+    return {
+        w.lower() for w in text.split()
+        if len(w) > 2 and w.lower() not in _STOP_WORDS
+    }
+
+
+def _is_similar_search(new_q: str, old_q: str) -> bool:
+    """True if the questions share at least 2 keywords AND >= 60% overlap."""
+    new_kw = _keywords(new_q)
+    old_kw = _keywords(old_q)
+    if len(new_kw) < 1:
+        return False
+    overlap = new_kw & old_kw
+    return len(overlap) >= 2 and len(overlap) / len(new_kw) >= 0.60
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -277,29 +302,84 @@ def start_grant_search(
     return {"job_id": job.id, "status": "pending"}
 
 
+@app.get("/api/search/targeted/recent")
+def get_recent_targeted_searches(session: Session = Depends(get_session)):
+    """Return completed targeted searches from the last 30 days with cooldown info."""
+    cutoff = (datetime.utcnow() - timedelta(days=SEARCH_COOLDOWN_DAYS)).isoformat()
+    recent = session.exec(
+        select(SearchJob)
+        .where(SearchJob.search_type == "targeted")
+        .where(SearchJob.status == "complete")
+        .order_by(SearchJob.completed_at.desc())
+    ).all()
+    results = []
+    for j in recent:
+        if not j.completed_at or j.completed_at < cutoff:
+            continue
+        completed_dt = datetime.fromisoformat(j.completed_at)
+        days_since = (datetime.utcnow() - completed_dt).days
+        days_remaining = max(0, SEARCH_COOLDOWN_DAYS - days_since)
+        results.append({
+            "job_id": j.id,
+            "question": j.question or "",
+            "completed_at": j.completed_at,
+            "days_since": days_since,
+            "days_remaining": days_remaining,
+            "grants_found": j.grants_found,
+        })
+    return results
+
+
 @app.post("/api/search/targeted", status_code=202)
 def start_targeted_search(
     request: TargetedSearchRequest,
     background_tasks: BackgroundTasks,
     session: Session = Depends(get_session),
 ):
-    """Start a targeted search for a specific question. No monthly limit."""
-    if not request.question or len(request.question.strip()) < 5:
+    """Start a targeted search for a specific question. Limited to once per topic per 30 days."""
+    question = (request.question or "").strip()
+    if len(question) < 5:
         raise HTTPException(status_code=400, detail="Question must be at least 5 characters.")
 
     running = _get_running_search(session)
     if running:
         raise HTTPException(
             status_code=409,
-            detail=f"A search is already in progress (job #{running.id}). Wait for it to finish.",
+            detail=f"A search is already running (job #{running.id}). Wait for it to finish.",
         )
+
+    # Check for similar recent targeted searches (30-day cooldown per topic)
+    cutoff = (datetime.utcnow() - timedelta(days=SEARCH_COOLDOWN_DAYS)).isoformat()
+    recent_targeted = session.exec(
+        select(SearchJob)
+        .where(SearchJob.search_type == "targeted")
+        .where(SearchJob.status == "complete")
+    ).all()
+    for prev in recent_targeted:
+        if not prev.completed_at or prev.completed_at < cutoff or not prev.question:
+            continue
+        if _is_similar_search(question, prev.question):
+            completed_dt = datetime.fromisoformat(prev.completed_at)
+            days_since = (datetime.utcnow() - completed_dt).days
+            days_remaining = SEARCH_COOLDOWN_DAYS - days_since
+            next_allowed = (completed_dt + timedelta(days=SEARCH_COOLDOWN_DAYS)).strftime("%-d %B %Y")
+            raise HTTPException(
+                status_code=429,
+                detail=(
+                    f"A similar search ('{prev.question}') ran {days_since} day(s) ago. "
+                    f"Next search on this topic allowed on {next_allowed} "
+                    f"({days_remaining} day(s) remaining). "
+                    "Check the Grant Tracker for results from that search."
+                ),
+            )
 
     job = SearchJob(
         focus_areas=json.dumps([]),
         search_type="targeted",
+        question=question,
         log_entries=json.dumps([{
             "ts": datetime.utcnow().isoformat(),
-            "msg": f"Targeted search: {request.question}",
+            "msg": f"Targeted search: {question}",
             "level": "phase",
         }]),
     )
@@ -307,7 +387,7 @@ def start_targeted_search(
     session.commit()
     session.refresh(job)
 
-    background_tasks.add_task(run_targeted_search, job.id, request.question.strip())
+    background_tasks.add_task(run_targeted_search, job.id, question)
     return {"job_id": job.id, "status": "pending"}
 
 

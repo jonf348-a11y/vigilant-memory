@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Search,
   Loader2,
@@ -10,10 +11,9 @@ import {
   Lock,
   Target,
   AlertTriangle,
+  ArrowRight,
 } from "lucide-react";
 import { api } from "../api";
-import GrantCard from "../components/GrantCard";
-import type { Grant } from "../types";
 
 interface LogEntry {
   ts: string;
@@ -38,6 +38,15 @@ interface Quota {
   days_remaining: number | null;
   is_locked: boolean;
   total_grants_in_db: number;
+}
+
+interface RecentSearch {
+  job_id: number;
+  question: string;
+  completed_at: string;
+  days_since: number;
+  days_remaining: number;
+  grants_found: number;
 }
 
 const DEFAULT_AREAS = [
@@ -74,6 +83,7 @@ function formatDate(iso: string) {
 }
 
 export default function GrantFinder() {
+  const navigate = useNavigate();
   const [selected, setSelected] = useState<string[]>(DEFAULT_AREAS);
   const [custom, setCustom] = useState("");
   const [jobStatus, setJobStatus] = useState<string>("idle");
@@ -81,7 +91,6 @@ export default function GrantFinder() {
   const [grantsFound, setGrantsFound] = useState(0);
   const [logEntries, setLogEntries] = useState<LogEntry[]>([]);
   const logCursorRef = useRef(0);
-  const [newGrants, setNewGrants] = useState<Grant[]>([]);
   const pollRef = useRef<number | null>(null);
   const logBottomRef = useRef<HTMLDivElement>(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -90,9 +99,18 @@ export default function GrantFinder() {
   const [quota, setQuota] = useState<Quota | null>(null);
   const [targetedQuestion, setTargetedQuestion] = useState("");
   const [searchError, setSearchError] = useState<string | null>(null);
+  const [recentSearches, setRecentSearches] = useState<RecentSearch[]>([]);
+  // Track which panel just completed so we show the result summary in the right place
+  const [completedType, setCompletedType] = useState<"full" | "targeted" | null>(null);
+  const [completedCount, setCompletedCount] = useState(0);
+
+  const loadRecentSearches = () => {
+    api.getRecentTargetedSearches().then(setRecentSearches).catch(() => null);
+  };
 
   useEffect(() => {
     api.getQuota().then(setQuota).catch(() => null);
+    loadRecentSearches();
   }, []);
 
   useEffect(() => {
@@ -136,10 +154,10 @@ export default function GrantFinder() {
         if (timerRef.current) clearInterval(timerRef.current);
         setJobStatus(res.status);
         if (res.status === "complete") {
-          const all = await api.listGrants();
-          setNewGrants(all.slice(0, Math.min(res.grants_found, all.length)));
-          // Refresh quota after a completed search
+          setCompletedCount(res.grants_found);
+          // Refresh quota and recent targeted list
           api.getQuota().then(setQuota).catch(() => null);
+          loadRecentSearches();
         }
       }
     } catch (_e) {
@@ -159,21 +177,22 @@ export default function GrantFinder() {
 
   const startSearch = async () => {
     if (selected.length === 0) return;
-    setNewGrants([]);
     setLogEntries([]);
     logCursorRef.current = 0;
     setGrantsFound(0);
     setElapsedSeconds(0);
     setSearchError(null);
+    setCompletedType(null);
+    setCompletedCount(0);
     setJobType("full");
 
     try {
       const res = await api.startSearch(selected);
       setJobStatus("running");
+      setCompletedType("full");
       beginPolling(res.job_id);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
-      // Strip the status code prefix that req() prepends
       const detail = msg.replace(/^\d+:\s*/, "");
       setSearchError(detail);
       setJobStatus("idle");
@@ -183,17 +202,19 @@ export default function GrantFinder() {
   const startTargeted = async () => {
     const q = targetedQuestion.trim();
     if (q.length < 5) return;
-    setNewGrants([]);
     setLogEntries([]);
     logCursorRef.current = 0;
     setGrantsFound(0);
     setElapsedSeconds(0);
     setSearchError(null);
+    setCompletedType(null);
+    setCompletedCount(0);
     setJobType("targeted");
 
     try {
       const res = await api.startTargetedSearch(q);
       setJobStatus("running");
+      setCompletedType("targeted");
       beginPolling(res.job_id);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
@@ -361,6 +382,23 @@ export default function GrantFinder() {
             Once per 30 days.
           </p>
         )}
+
+        {/* Full search result summary */}
+        {jobStatus === "complete" && completedType === "full" && (
+          <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-3 mt-4">
+            <span className="text-sm text-emerald-800 font-medium">
+              {completedCount > 0
+                ? `✓ ${completedCount} new grant${completedCount !== 1 ? "s" : ""} added to the tracker`
+                : "✓ Search complete — no new grants found (all already in database)"}
+            </span>
+            <button
+              onClick={() => navigate("/tracker")}
+              className="flex items-center gap-1.5 text-sm font-medium text-emerald-700 hover:text-emerald-900 transition-colors"
+            >
+              View in Grant Tracker <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Targeted search panel */}
@@ -368,14 +406,14 @@ export default function GrantFinder() {
         <div className="flex items-center gap-2 mb-2">
           <Target className="w-4 h-4 text-leaf-600" />
           <h2 className="font-semibold text-gray-800">Targeted Search</h2>
-          <span className="text-xs bg-leaf-100 text-leaf-700 px-2 py-0.5 rounded-full font-medium">Always available</span>
+          <span className="text-xs bg-leaf-100 text-leaf-700 px-2 py-0.5 rounded-full font-medium">Available once per topic per 30 days</span>
         </div>
         <p className="text-sm text-gray-500 mb-4">
           Ask a specific question — for example, "grants for community composting in Norfolk" or
           "EV charging point funding for parish councils 2025". Cheaper and faster than the full search.
           Will not re-research funders already in the database.
         </p>
-        <div className="flex gap-2">
+        <div className="flex gap-2 mb-4">
           <input
             type="text"
             value={targetedQuestion}
@@ -398,6 +436,43 @@ export default function GrantFinder() {
             {isSearching && jobType === "targeted" ? "Searching…" : "Search"}
           </button>
         </div>
+
+        {/* Completed targeted search result summary */}
+        {jobStatus === "complete" && completedType === "targeted" && (
+          <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-3 mb-4">
+            <span className="text-sm text-emerald-800 font-medium">
+              {completedCount > 0
+                ? `✓ ${completedCount} new grant${completedCount !== 1 ? "s" : ""} added to the tracker`
+                : "✓ Search complete — no new grants found (all already in database)"}
+            </span>
+            <button
+              onClick={() => navigate("/tracker")}
+              className="flex items-center gap-1.5 text-sm font-medium text-emerald-700 hover:text-emerald-900 transition-colors"
+            >
+              View in Grant Tracker <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+
+        {/* Recently searched topics */}
+        {recentSearches.length > 0 && (
+          <div>
+            <p className="text-xs font-medium text-gray-500 mb-2">Recently searched (30-day cooldown per topic):</p>
+            <div className="flex flex-wrap gap-2">
+              {recentSearches.map((rs) => (
+                <div
+                  key={rs.job_id}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs bg-amber-50 border border-amber-200 text-amber-800"
+                  title={`${rs.grants_found} grant${rs.grants_found !== 1 ? "s" : ""} found — next available in ${rs.days_remaining} day(s)`}
+                >
+                  <Lock className="w-3 h-3" />
+                  <span className="font-medium truncate max-w-[200px]">{rs.question}</span>
+                  <span className="text-amber-600 shrink-0">· {rs.days_remaining}d left</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Live research log */}
@@ -465,19 +540,6 @@ export default function GrantFinder() {
         </div>
       )}
 
-      {/* Results */}
-      {newGrants.length > 0 && (
-        <div>
-          <h2 className="font-semibold text-gray-800 mb-3">
-            New Grants Found ({newGrants.length})
-          </h2>
-          <div className="grid gap-4 md:grid-cols-2">
-            {newGrants.map((grant) => (
-              <GrantCard key={grant.id} grant={grant} />
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
