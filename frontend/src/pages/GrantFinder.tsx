@@ -140,9 +140,9 @@ export default function GrantFinder() {
 
   const pollLog = async (id: number, cursor: number) => {
     try {
-      const res: LogResponse = await fetch(`/api/search/${id}/log?since=${cursor}`).then((r) =>
-        r.json()
-      );
+      const raw = await fetch(`/api/search/${id}/log?since=${cursor}`);
+      if (!raw.ok) return;
+      const res: LogResponse = await raw.json();
       if (res.entries.length > 0) {
         setLogEntries((prev) => [...prev, ...res.entries]);
         logCursorRef.current = res.total_entries;

@@ -8,7 +8,7 @@ from fastapi import FastAPI, Depends, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
-from sqlmodel import Session, select
+from sqlmodel import Session, select, func
 
 from database import create_db_and_tables, get_session, engine
 from models import (
@@ -35,8 +35,9 @@ _STOP_WORDS = {
 
 
 def _keywords(text: str) -> set[str]:
+    import re
     return {
-        w.lower() for w in text.split()
+        w.lower() for w in re.split(r"[\s\-/]+", text)
         if len(w) > 2 and w.lower() not in _STOP_WORDS
     }
 
@@ -245,7 +246,7 @@ def get_search_quota(session: Session = Depends(get_session)):
         "days_since_last": None,
         "days_remaining": None,
         "is_locked": False,
-        "total_grants_in_db": session.exec(select(Grant)).all().__len__(),
+        "total_grants_in_db": session.exec(select(func.count(Grant.id))).one(),
     }
 
     if last and last.completed_at:
@@ -282,7 +283,7 @@ def start_grant_search(
         days_since = (datetime.utcnow() - last_dt).days
         if days_since < SEARCH_COOLDOWN_DAYS:
             days_remaining = SEARCH_COOLDOWN_DAYS - days_since
-            next_allowed = (last_dt + timedelta(days=SEARCH_COOLDOWN_DAYS)).strftime("%-d %B %Y")
+            next_allowed = (last_dt + timedelta(days=SEARCH_COOLDOWN_DAYS)).strftime("%d %B %Y").lstrip("0")
             raise HTTPException(
                 status_code=429,
                 detail=(
@@ -310,11 +311,12 @@ def get_recent_targeted_searches(session: Session = Depends(get_session)):
         select(SearchJob)
         .where(SearchJob.search_type == "targeted")
         .where(SearchJob.status == "complete")
+        .where(SearchJob.completed_at >= cutoff)
         .order_by(SearchJob.completed_at.desc())
     ).all()
     results = []
     for j in recent:
-        if not j.completed_at or j.completed_at < cutoff:
+        if not j.completed_at:
             continue
         completed_dt = datetime.fromisoformat(j.completed_at)
         days_since = (datetime.utcnow() - completed_dt).days
@@ -354,15 +356,16 @@ def start_targeted_search(
         select(SearchJob)
         .where(SearchJob.search_type == "targeted")
         .where(SearchJob.status == "complete")
+        .where(SearchJob.completed_at >= cutoff)
     ).all()
     for prev in recent_targeted:
-        if not prev.completed_at or prev.completed_at < cutoff or not prev.question:
+        if not prev.completed_at or not prev.question:
             continue
         if _is_similar_search(question, prev.question):
             completed_dt = datetime.fromisoformat(prev.completed_at)
             days_since = (datetime.utcnow() - completed_dt).days
-            days_remaining = SEARCH_COOLDOWN_DAYS - days_since
-            next_allowed = (completed_dt + timedelta(days=SEARCH_COOLDOWN_DAYS)).strftime("%-d %B %Y")
+            days_remaining = max(0, SEARCH_COOLDOWN_DAYS - days_since)
+            next_allowed = (completed_dt + timedelta(days=SEARCH_COOLDOWN_DAYS)).strftime("%d %B %Y").lstrip("0")
             raise HTTPException(
                 status_code=429,
                 detail=(

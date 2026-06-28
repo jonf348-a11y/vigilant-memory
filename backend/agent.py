@@ -880,28 +880,26 @@ After searching all programmes, output a single ```json ... ``` array.
         # Append assistant turn and continue
         messages.append({"role": "assistant", "content": response.content})
 
-        if iteration == 16 and response.stop_reason == "tool_use":
+        # Always acknowledge outstanding tool_use blocks first (API requirement)
+        tool_results = [
+            {"type": "tool_result", "tool_use_id": block.id, "content": ""}
+            for block in response.content
+            if hasattr(block, "type") and block.type == "tool_use"
+        ]
+        if iteration == 16 and response.stop_reason == "tool_use" and tool_results:
+            # Combine acknowledgements + wrap-up nudge in one user turn
             messages.append({
                 "role": "user",
-                "content": (
-                    "You've done excellent research. Please now compile everything "
-                    "you've found into the final ```json ... ``` array and stop."
-                ),
+                "content": tool_results + [{
+                    "type": "text",
+                    "text": (
+                        "You've done excellent research. Please now compile everything "
+                        "you've found into the final ```json ... ``` array and stop."
+                    ),
+                }],
             })
-        else:
-            # Standard tool_use continuation — provide empty tool results for
-            # server-side web_search (results are already in the assistant content)
-            tool_results = [
-                {
-                    "type": "tool_result",
-                    "tool_use_id": block.id,
-                    "content": "",
-                }
-                for block in response.content
-                if hasattr(block, "type") and block.type == "tool_use"
-            ]
-            if tool_results:
-                messages.append({"role": "user", "content": tool_results})
+        elif tool_results:
+            messages.append({"role": "user", "content": tool_results})
 
     progress(f"  {phase_label}: hit iteration limit — extracting partial results", "info")
     # Extract whatever text was in the last response
@@ -1117,22 +1115,24 @@ Output format — each grant must have:
 
         messages.append({"role": "assistant", "content": response.content})
 
-        if iteration == 9 and response.stop_reason == "tool_use":
+        tool_results = [
+            {"type": "tool_result", "tool_use_id": block.id, "content": ""}
+            for block in response.content
+            if hasattr(block, "type") and block.type == "tool_use"
+        ]
+        if iteration == 9 and response.stop_reason == "tool_use" and tool_results:
             messages.append({
                 "role": "user",
-                "content": (
-                    "Good research. Please compile your findings into the "
-                    "final ```json ... ``` array now."
-                ),
+                "content": tool_results + [{
+                    "type": "text",
+                    "text": (
+                        "Good research. Please compile your findings into the "
+                        "final ```json ... ``` array now."
+                    ),
+                }],
             })
-        else:
-            tool_results = [
-                {"type": "tool_result", "tool_use_id": block.id, "content": ""}
-                for block in response.content
-                if hasattr(block, "type") and block.type == "tool_use"
-            ]
-            if tool_results:
-                messages.append({"role": "user", "content": tool_results})
+        elif tool_results:
+            messages.append({"role": "user", "content": tool_results})
 
     progress("  Targeted search: hit iteration limit — extracting partial results", "info")
     last_text = "".join(

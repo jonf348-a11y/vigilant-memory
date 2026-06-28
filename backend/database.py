@@ -14,6 +14,7 @@ def create_db_and_tables():
 def _migrate():
     """Add columns that did not exist in earlier schema versions."""
     from sqlalchemy import text
+    from sqlalchemy.exc import OperationalError
     with engine.connect() as conn:
         for stmt in [
             "ALTER TABLE searchjob ADD COLUMN search_type TEXT DEFAULT 'full'",
@@ -22,7 +23,7 @@ def _migrate():
             try:
                 conn.execute(text(stmt))
                 conn.commit()
-            except Exception:
+            except OperationalError:
                 pass  # Column already exists
 
 
