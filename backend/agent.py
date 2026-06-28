@@ -27,6 +27,8 @@ client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
 ProgressCallback = Callable[[str, str], None]  # (message, level="info"|"found"|"phase")
 
+MAX_SEARCHES_PER_PHASE = 12  # hard cap on web searches per phase to control cost
+
 # ---------------------------------------------------------------------------
 # Shared context injected into every phase
 # ---------------------------------------------------------------------------
@@ -479,8 +481,8 @@ def _run_phase(
     known_db_funders: list[str] | None = None,
 ) -> list[dict]:
     """
-    Run one research phase. Returns a list of raw grant dicts.
-    Makes up to 35 tool-use iterations before forcing a final answer.
+    Run one research phase using Sonnet. Returns a list of raw grant dicts.
+    Caps at MAX_SEARCHES_PER_PHASE web searches then nudges the model to compile.
     """
     phase_name = phase["name"]
     phase_label = phase["label"]
@@ -515,11 +517,13 @@ MANDATORY RULES — NO EXCEPTIONS:
 1. You MUST use web_search for every programme before including it. Do NOT rely on
    training knowledge. Grant deadlines, amounts and eligibility change constantly.
 2. Search BEFORE you write any JSON. Your first action must be a web_search call.
-3. Be EXHAUSTIVE — search every programme listed in your focus area.
-4. Follow leads: if a result mentions a funder you haven't searched, search them too.
+3. You have a budget of {MAX_SEARCHES_PER_PHASE} web searches for this phase.
+   Prioritise the programmes most likely to be open and relevant — do not waste
+   searches on programmes you already know are closed or ineligible.
+4. Follow leads: if a result mentions an open funder you haven't searched, search them.
 5. Every grant in your final JSON must have been verified by a live web_search call.
    If you cannot find live confirmation, mark confidence "low" and note it.
-6. Only output the final ```json ... ``` array once you have searched exhaustively.
+6. Only output the final ```json ... ``` array once you have used your search budget.
    Do not output JSON mid-way through — search first, compile at the end.
 
 Output format — each grant must have:
@@ -552,16 +556,14 @@ After searching all programmes, output a single ```json ... ``` array.
 
     messages = [{"role": "user", "content": prompt}]
     searches_this_phase = 0
-    last_search_count = 0
-    force_finish_next = False
+    nudge_sent = False
 
     cached_system = [{"type": "text", "text": system, "cache_control": {"type": "ephemeral"}}]
 
-    for iteration in range(20):
+    for iteration in range(15):
         response = client.messages.create(
-            model="claude-opus-4-8",
-            max_tokens=16000,
-            thinking={"type": "adaptive"},
+            model="claude-sonnet-4-6",
+            max_tokens=8000,
             system=cached_system,
             tools=[{"type": "web_search_20260209", "name": "web_search"}],
             messages=messages,
@@ -575,7 +577,7 @@ After searching all programmes, output a single ```json ... ``` array.
         searches_this_phase += new_searches
         if new_searches > 0:
             progress(
-                f"  {phase_label}: {searches_this_phase} searches completed…",
+                f"  {phase_label}: {searches_this_phase}/{MAX_SEARCHES_PER_PHASE} searches…",
                 "info",
             )
 
@@ -602,14 +604,14 @@ After searching all programmes, output a single ```json ... ``` array.
             for block in response.content
             if hasattr(block, "type") and block.type == "tool_use"
         ]
-        if iteration == 16 and response.stop_reason == "tool_use" and tool_results:
-            # Combine acknowledgements + wrap-up nudge in one user turn
+        if searches_this_phase >= MAX_SEARCHES_PER_PHASE and tool_results and not nudge_sent:
+            nudge_sent = True
             messages.append({
                 "role": "user",
                 "content": tool_results + [{
                     "type": "text",
                     "text": (
-                        "You've done excellent research. Please now compile everything "
+                        "You've used your search budget. Please now compile everything "
                         "you've found into the final ```json ... ``` array and stop."
                     ),
                 }],

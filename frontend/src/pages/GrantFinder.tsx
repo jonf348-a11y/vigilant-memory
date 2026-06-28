@@ -255,7 +255,7 @@ export default function GrantFinder() {
         <h1 className="text-2xl font-bold text-leaf-900">Find Grants</h1>
         <p className="text-gray-500 mt-1">
           The full search covers up to 6 research phases — select only the areas relevant to
-          your project to save time and cost. Typically <strong>10–30 minutes</strong>.
+          your project to save time and cost. Typically <strong>5–15 minutes</strong>.
           Use targeted search for specific questions any time.
         </p>
       </div>
