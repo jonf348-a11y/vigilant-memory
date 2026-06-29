@@ -744,10 +744,127 @@ def research_grants_deep(
         )
 
     progress(
-        f"Research complete. {len(all_grants)} grants found across all phases.",
+        f"Research complete. {len(all_grants)} grants found across all phases. Running verification…",
         "phase",
     )
-    return all_grants
+    return _verify_grants(all_grants, progress)
+
+
+# ---------------------------------------------------------------------------
+# Single-pass grant verifier — independent grader, runs after all phases
+# ---------------------------------------------------------------------------
+
+def _verify_grants(grants: list[dict], progress: ProgressCallback) -> list[dict]:
+    """
+    Independent grader pass: reviews the combined grant list and removes entries
+    that are clearly ineligible, confirmed closed, or have no real URL.
+    Returns REMOVE decisions only (small output) then filters the original list.
+    Falls back to the unverified list if parsing fails.
+    """
+    if not grants:
+        return grants
+
+    progress(f"Verifier: reviewing {len(grants)} grants for eligibility and status…", "phase")
+
+    # Summarise each grant minimally to keep token count low
+    summaries = []
+    for i, g in enumerate(grants):
+        summaries.append(
+            f"{i}: title={g.get('title','?')} | funder={g.get('funder','?')} | "
+            f"url={g.get('url','none')} | eligibility={g.get('eligibility_notes','?')} | "
+            f"confidence={g.get('confidence','?')} | deadline={g.get('deadline','?')}"
+        )
+    grants_summary = "\n".join(summaries)
+
+    system = f"""You are an independent grant eligibility verifier for HEAT/HEAG in Hethersett, Norfolk.
+
+HEAT is a committee of Hethersett Parish Council (a public body).
+HEAG is a volunteer community group backed by the parish council.
+Neither is a registered charity. Neither is a farmer, housing association, or NHS body.
+
+Your task: identify which grants from the list below should be REMOVED.
+
+REMOVE a grant if ANY of the following are true:
+  - Eligibility explicitly excludes parish councils and community groups
+    (e.g. "registered charities only", "farmers only", "local authorities with min
+    population >50,000", "housing associations only", "NHS bodies only")
+  - The grant is confirmed closed since before 2024 with no active successor
+  - The URL is blank or is a generic company homepage (e.g. "https://www.tesco.com"
+    with no path — not a grant page)
+
+KEEP a grant if:
+  - Eligibility includes or could include community groups, parish councils,
+    or voluntary organisations — even if competitive
+  - The grant might still be open (uncertain is fine — keep it)
+  - Confidence is "low" but the programme is plausibly current
+
+You may make up to 6 web searches to spot-check specific grants you are unsure about.
+Focus searches on low-confidence grants or grants with homepage-only URLs.
+
+Return ONLY a JSON array of grants to REMOVE, in this format:
+```json
+[{{"index": 0, "title": "...", "funder": "...", "reason": "..."}}]
+```
+If nothing should be removed, return: ```json\n[]\n```
+Do not return any other text."""
+
+    prompt = f"""Review these {len(grants)} grants and return the list of indices to remove:\n\n{grants_summary}"""
+
+    messages = [{"role": "user", "content": prompt}]
+    total_searches = 0
+    nudge_sent = False
+
+    for iteration in range(10):
+        response = client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=4000,
+            system=system,
+            tools=[{"type": "web_search_20260209", "name": "web_search"}],
+            messages=messages,
+        )
+
+        if response.stop_reason == "end_turn":
+            text = "".join(
+                block.text for block in response.content
+                if hasattr(block, "text") and block.text
+            )
+            try:
+                m = re.search(r"```json\s*([\s\S]*?)```", text)
+                removals = json.loads(m.group(1).strip()) if m else []
+            except Exception:
+                removals = []
+
+            remove_indices = {r.get("index") for r in removals if isinstance(r, dict)}
+            verified = [g for i, g in enumerate(grants) if i not in remove_indices]
+
+            progress(
+                f"Verifier: {len(verified)} grants passed, {len(removals)} removed",
+                "found",
+            )
+            return verified if verified else grants
+
+        messages.append({"role": "assistant", "content": response.content})
+        tool_results = [
+            {"type": "tool_result", "tool_use_id": block.id, "content": ""}
+            for block in response.content
+            if hasattr(block, "type") and block.type == "tool_use"
+        ]
+        total_searches += len(tool_results)
+        if tool_results:
+            if total_searches >= 6 and not nudge_sent:
+                nudge_sent = True
+                messages.append({
+                    "role": "user",
+                    "content": tool_results + [{
+                        "type": "text",
+                        "text": "You've used your search budget. Please now return the removal list JSON.",
+                    }],
+                })
+            else:
+                messages.append({"role": "user", "content": tool_results})
+
+    progress("Verifier: hit iteration limit — returning unverified list", "info")
+    return grants
 
 
 # ---------------------------------------------------------------------------
