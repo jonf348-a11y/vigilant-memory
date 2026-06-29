@@ -527,10 +527,14 @@ MANDATORY RULES — NO EXCEPTIONS:
    Do not output JSON mid-way through — search first, compile at the end.
 
 Output format — each grant must have:
-  title            (string)
+  title            (string — the specific programme name, NOT just the funder name)
   funder           (string)
-  description      (string — 2–4 sentences describing what it funds)
-  url              (string or null — direct link to grant page)
+  description      (string — 2–4 sentences: what it funds, typical award size, why it
+                    suits HEAT/HEAG specifically. Be concrete, not generic.)
+  url              (string or null — MUST be the direct URL to the specific grant or
+                    programme page, e.g. ".../funding/programmes/xxxxx". A homepage
+                    like "https://www.tnlcommunityfund.org.uk" is NOT acceptable —
+                    use null if you cannot find the specific page URL)
   deadline         (string — exact date, "rolling", "annual — check website", or "unknown")
   max_amount       (integer GBP or null)
   min_amount       (integer GBP or null)
@@ -905,8 +909,13 @@ RULES:
 5. Output a single ```json ... ``` array when done.
 
 Output format — each grant must have:
-  title, funder, description, url, deadline, max_amount, min_amount,
-  focus_areas, eligibility_notes, confidence
+  title            (string — specific programme name, NOT just the funder name)
+  funder           (string)
+  description      (string — 2–4 sentences: what it funds, typical award size, why it
+                    suits HEAT/HEAG specifically)
+  url              (string or null — MUST be the direct URL to the specific grant page,
+                    not a homepage. Use null if you cannot find the specific page URL)
+  deadline, max_amount, min_amount, focus_areas, eligibility_notes, confidence
 """
 
     prompt = (
