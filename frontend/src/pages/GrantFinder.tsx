@@ -53,26 +53,37 @@ const SEARCH_PHASES = [
     name: "public_lottery",
     label: "Public Sector & Lottery",
     description: "National Lottery, NLCF, DEFRA, Forestry Commission, UKSPF, LEADER",
+    alwaysOn: false,
   },
   {
     name: "energy_climate",
     label: "Energy & Climate",
     description: "Community solar/wind, EV chargers, e-bikes, insulation, heat pumps, climate action",
+    alwaysOn: false,
   },
   {
     name: "nature_wildlife",
     label: "Nature & Wildlife",
     description: "Wildlife Trusts, RSPB, Woodland Trust, tree planting, biodiversity, rewilding",
+    alwaysOn: false,
   },
   {
     name: "community_norfolk",
     label: "Community & Norfolk Local",
     description: "Groundwork, Norfolk funders, offshore wind funds, S106/CIL, developer contributions",
+    alwaysOn: false,
   },
   {
     name: "trusts_corporate",
     label: "Major Trusts & Corporate",
     description: "Esmée Fairbairn, supermarkets, energy companies, Dulverton, Garfield Weston",
+    alwaysOn: false,
+  },
+  {
+    name: "verify_enrich",
+    label: "Verify & Deepen",
+    description: "Independently checks all results — confirms grants are open, URLs are real, eligibility is correct",
+    alwaysOn: true,
   },
 ];
 
@@ -100,7 +111,7 @@ function formatDate(iso: string) {
 export default function GrantFinder() {
   const navigate = useNavigate();
   const [selectedPhases, setSelectedPhases] = useState<string[]>(
-    SEARCH_PHASES.map((p) => p.name)
+    SEARCH_PHASES.filter((p) => !p.alwaysOn).map((p) => p.name)
   );
   const [jobStatus, setJobStatus] = useState<string>("idle");
   const [jobType, setJobType] = useState<"full" | "targeted">("full");
@@ -329,27 +340,34 @@ export default function GrantFinder() {
 
         <div className="space-y-2 mb-5">
           {SEARCH_PHASES.map((phase) => {
-            const checked = selectedPhases.includes(phase.name);
+            const checked = phase.alwaysOn || selectedPhases.includes(phase.name);
             return (
               <label
                 key={phase.name}
-                className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
-                  isFullLocked || isSearching
+                className={`flex items-start gap-3 p-3 rounded-lg border transition-colors ${
+                  phase.alwaysOn
+                    ? "border-leaf-200 bg-leaf-50 cursor-default"
+                    : isFullLocked || isSearching
                     ? "opacity-50 cursor-not-allowed"
                     : checked
-                    ? "border-leaf-300 bg-leaf-50"
-                    : "border-gray-200 bg-white hover:border-leaf-200"
+                    ? "border-leaf-300 bg-leaf-50 cursor-pointer"
+                    : "border-gray-200 bg-white hover:border-leaf-200 cursor-pointer"
                 }`}
               >
                 <input
                   type="checkbox"
                   checked={checked}
-                  disabled={isFullLocked || isSearching}
-                  onChange={() => !isFullLocked && !isSearching && togglePhase(phase.name)}
+                  disabled={phase.alwaysOn || isFullLocked || isSearching}
+                  onChange={() => !phase.alwaysOn && !isFullLocked && !isSearching && togglePhase(phase.name)}
                   className="mt-0.5 accent-leaf-600 shrink-0"
                 />
-                <div>
-                  <span className="text-sm font-medium text-gray-800">{phase.label}</span>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-gray-800">{phase.label}</span>
+                    {phase.alwaysOn && (
+                      <span className="text-xs bg-leaf-100 text-leaf-700 px-1.5 py-0.5 rounded font-medium">Always on</span>
+                    )}
+                  </div>
                   <span className="text-xs text-gray-500 block mt-0.5">{phase.description}</span>
                 </div>
               </label>
@@ -378,7 +396,7 @@ export default function GrantFinder() {
 
         {!isFullLocked && !isSearching && (
           <p className="text-xs text-gray-400 mt-3">
-            {selectedPhases.length} of {SEARCH_PHASES.length} areas selected · Verify & Deepen always included · Once per 30 days.
+            {selectedPhases.length} of {SEARCH_PHASES.filter(p => !p.alwaysOn).length} areas selected · Once per 30 days.
           </p>
         )}
 
