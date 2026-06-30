@@ -94,7 +94,8 @@ def _append_log(job_id: int, message: str, level: str):
 
 
 def _save_grants_batch(grants: list[dict]) -> int:
-    """Save a list of raw grant dicts to the DB, skipping duplicates."""
+    """Save grant dicts to DB. New grants are inserted; existing ones get refreshed
+    fields (deadline, url, amounts, description) while preserving user-set status/notes."""
     count = 0
     with Session(engine) as s:
         for g in grants:
@@ -105,6 +106,22 @@ def _save_grants_batch(grants: list[dict]) -> int:
                 )
             ).first()
             if existing:
+                changed = False
+                refreshable = {
+                    "url": g.get("url"),
+                    "deadline": g.get("deadline"),
+                    "max_amount": _safe_int(g.get("max_amount")),
+                    "min_amount": _safe_int(g.get("min_amount")),
+                    "description": g.get("description"),
+                    "eligibility_notes": g.get("eligibility_notes"),
+                }
+                for field, new_val in refreshable.items():
+                    if new_val is not None and new_val != getattr(existing, field):
+                        setattr(existing, field, new_val)
+                        changed = True
+                if changed:
+                    existing.updated_at = datetime.utcnow().isoformat()
+                    s.add(existing)
                 continue
             focus_list = g.get("focus_areas", [])
             grant = Grant(
@@ -131,11 +148,11 @@ def _safe_int(value) -> Optional[int]:
         return None
 
 
-def _get_known_funders() -> list[str]:
-    """Return deduplicated list of funder names already in the database."""
+def _get_known_grants() -> list[str]:
+    """Return 'Title — Funder' strings for every grant already in the database."""
     with Session(engine) as s:
         existing = s.exec(select(Grant)).all()
-        return list({g.funder for g in existing if g.funder})
+        return [f"{g.title} — {g.funder}" for g in existing if g.title and g.funder]
 
 
 def run_grant_search(job_id: int, phase_names: Optional[list[str]] = None):
@@ -154,8 +171,8 @@ def run_grant_search(job_id: int, phase_names: Optional[list[str]] = None):
         _append_log(job_id=job_id, message=message, level=level)
 
     try:
-        known_funders = _get_known_funders()
-        grants = research_grants_deep([], progress, known_funders=known_funders, phases_to_run=phase_names)
+        known_grants = _get_known_grants()
+        grants = research_grants_deep([], progress, known_grants=known_grants, phases_to_run=phase_names)
         total_saved = _save_grants_batch(grants)
 
         with Session(engine) as s:
@@ -191,8 +208,8 @@ def run_targeted_search(job_id: int, question: str):
         _append_log(job_id=job_id, message=message, level=level)
 
     try:
-        known_funders = _get_known_funders()
-        grants = research_targeted(question, known_funders, progress)
+        known_grants = _get_known_grants()
+        grants = research_targeted(question, known_grants, progress)
         total_saved = _save_grants_batch(grants)
 
         with Session(engine) as s:

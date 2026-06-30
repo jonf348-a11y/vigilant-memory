@@ -478,7 +478,7 @@ def _run_phase(
     phase: dict,
     discovered_funders: list[str],
     progress: ProgressCallback,
-    known_db_funders: list[str] | None = None,
+    known_db_grants: list[str] | None = None,
 ) -> list[dict]:
     """
     Run one research phase using Sonnet. Returns a list of raw grant dicts.
@@ -489,15 +489,16 @@ def _run_phase(
     progress(f"Starting phase: {phase_label}", "phase")
 
     funder_context = ""
-    if known_db_funders:
+    if known_db_grants:
         funder_context += (
-            "\n\nFunders ALREADY IN THE DATABASE — SKIP THESE ENTIRELY. "
-            "Do not research, verify, or include them in your output:\n"
-            + "\n".join(f"  • {f}" for f in known_db_funders[:80])
+            "\n\nGrant programmes ALREADY IN THE DATABASE — omit these specific programmes "
+            "from your output. You MAY still research their funders: new or additional "
+            "programmes from the same organisations are welcome if not on this list.\n"
+            + "\n".join(f"  • {f}" for f in known_db_grants[:120])
         )
     if discovered_funders:
         funder_context += (
-            "\n\nFunders found in earlier phases this run (do not duplicate):\n"
+            "\n\nGrants found in earlier phases this run (do not duplicate):\n"
             + "\n".join(f"  • {f}" for f in discovered_funders[:40])
         )
 
@@ -677,13 +678,14 @@ def research_grants_deep(
     focus_areas: list[str],
     progress: ProgressCallback,
     phases_to_run: list[str] | None = None,
-    known_funders: list[str] | None = None,
+    known_grants: list[str] | None = None,
 ) -> list[dict]:
     """
     Run all research phases and return the combined de-duplicated grant list.
 
     phases_to_run: if provided, only run these phase names (useful for resuming).
-    known_funders: funders already in the database — the agent will skip them.
+    known_grants: 'Title — Funder' strings already in the database — the agent skips
+                  these specific programmes but still searches their funders for new ones.
     """
     # verify_enrich always runs last; other phases filtered by user selection
     active_phases = [
@@ -695,12 +697,12 @@ def research_grants_deep(
 
     all_grants: list[dict] = []
     discovered_funders: list[str] = []
-    known_db_funders: list[str] = list(known_funders or [])
+    known_db_grants: list[str] = list(known_grants or [])
 
-    if known_db_funders:
+    if known_db_grants:
         progress(
-            f"Skipping {len(known_db_funders)} funders already in the database — "
-            "the agent will focus on finding new sources only.",
+            f"{len(known_db_grants)} grants already in the database — "
+            "the agent will skip these and focus on finding new programmes.",
             "info",
         )
 
@@ -717,7 +719,7 @@ def research_grants_deep(
         )
         try:
             phase_grants = _run_phase(
-                phase, discovered_funders, progress, known_db_funders=known_db_funders
+                phase, discovered_funders, progress, known_db_grants=known_db_grants
             )
         except Exception as e:
             progress(f"  Phase {phase['name']} error: {e}", "info")
@@ -877,22 +879,22 @@ Do not return any other text."""
 
 def research_targeted(
     question: str,
-    known_funders: list[str],
+    known_grants: list[str],
     progress: ProgressCallback,
 ) -> list[dict]:
     """
     Run a single focused search for a specific question.
     Much cheaper than the full 10-phase search — 12 iterations maximum.
-    Skips funders already in the database.
+    Skips specific grant programmes already in the database.
     """
     progress(f"Targeted search: {question}", "phase")
 
     funder_context = ""
-    if known_funders:
+    if known_grants:
         funder_context = (
-            "\n\nFunders ALREADY IN THE DATABASE — do NOT re-research these. "
-            "Skip any programme you recognise from this list:\n"
-            + "\n".join(f"  • {f}" for f in known_funders[:80])
+            "\n\nGrant programmes ALREADY IN THE DATABASE — omit these from your output. "
+            "You may still research their funders for new or additional programmes:\n"
+            + "\n".join(f"  • {f}" for f in known_grants[:120])
         )
 
     system = f"""You are an expert UK grant fundraiser researching a specific funding
