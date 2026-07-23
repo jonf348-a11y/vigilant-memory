@@ -22,6 +22,7 @@ from models import (
     ChatRequest,
 )
 from agent import research_grants_deep, research_targeted, chat_with_assistant, PHASES
+from alerts import send_agent_alert
 
 SEARCH_COOLDOWN_DAYS = 30
 
@@ -316,6 +317,7 @@ def start_grant_search(
     session.commit()
     session.refresh(job)
 
+    background_tasks.add_task(send_agent_alert, "full", job.id, None)
     background_tasks.add_task(run_grant_search, job.id, request.phase_names)
     return {"job_id": job.id, "status": "pending"}
 
@@ -407,6 +409,7 @@ def start_targeted_search(
     session.commit()
     session.refresh(job)
 
+    background_tasks.add_task(send_agent_alert, "targeted", job.id, question)
     background_tasks.add_task(run_targeted_search, job.id, question)
     return {"job_id": job.id, "status": "pending"}
 
