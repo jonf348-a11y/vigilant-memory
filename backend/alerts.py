@@ -79,6 +79,9 @@ def send_agent_alert(search_type: str, job_id: int, question: str | None = None)
         headers={
             "Authorization": f"Bearer {cfg['api_key']}",
             "Content-Type": "application/json",
+            # Resend sits behind Cloudflare, which 403s the default urllib
+            # User-Agent (Cloudflare error 1010). A named UA passes.
+            "User-Agent": "hethersett-grant-agent/1.0",
         },
     )
 
