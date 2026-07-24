@@ -2,41 +2,41 @@
 Usage alerts for the Hethersett Grant Agent.
 
 Sends a short email whenever the expensive research agent is used (a full or
-targeted grant search). Configuration is read from environment variables; if
-SMTP is not configured the sender quietly no-ops so it can never break a search.
+targeted grant search). Delivery is via the Resend HTTPS API rather than SMTP,
+because Railway's Hobby plan blocks outbound SMTP ports. Configuration is read
+from environment variables; if RESEND_API_KEY is not set the sender quietly
+no-ops so it can never break a search.
 
-Required env vars to enable alerts:
-  SMTP_HOST       e.g. smtp.gmail.com
-  SMTP_USER       the SMTP account username / from address
-  SMTP_PASSWORD   the SMTP password (for Gmail, an App Password)
+Required env var to enable alerts:
+  RESEND_API_KEY   your Resend API key (starts with "re_")
 
 Optional:
-  SMTP_PORT       default 587 (STARTTLS)
-  ALERT_FROM      default falls back to SMTP_USER
-  ALERT_TO        default jonf348@googlemail.com
+  ALERT_FROM       sender address. Default "onboarding@resend.dev", which is
+                   Resend's shared sender that works with no domain setup.
+  ALERT_TO         recipient. Default jonf348@googlemail.com. On Resend's free
+                   tier without a verified domain this must be the address you
+                   signed up to Resend with.
 """
 
+import json
 import os
-import smtplib
 import traceback
+import urllib.error
+import urllib.request
 from datetime import datetime
-from email.message import EmailMessage
 
 DEFAULT_ALERT_TO = "jonf348@googlemail.com"
+DEFAULT_ALERT_FROM = "Hethersett Agent <onboarding@resend.dev>"
+RESEND_ENDPOINT = "https://api.resend.com/emails"
 
 
 def _config() -> dict | None:
-    host = os.getenv("SMTP_HOST")
-    user = os.getenv("SMTP_USER")
-    password = os.getenv("SMTP_PASSWORD")
-    if not (host and user and password):
+    api_key = os.getenv("RESEND_API_KEY")
+    if not api_key:
         return None
     return {
-        "host": host,
-        "port": int(os.getenv("SMTP_PORT", "587")),
-        "user": user,
-        "password": password,
-        "sender": os.getenv("ALERT_FROM") or user,
+        "api_key": api_key,
+        "sender": os.getenv("ALERT_FROM") or DEFAULT_ALERT_FROM,
         "recipient": os.getenv("ALERT_TO") or DEFAULT_ALERT_TO,
     }
 
@@ -45,14 +45,14 @@ def send_agent_alert(search_type: str, job_id: int, question: str | None = None)
     """Email a notification that the agent has been used. Never raises."""
     cfg = _config()
     if cfg is None:
-        print(f"[alert] SMTP not configured — skipping alert for {search_type} search job #{job_id}")
+        print(f"[alert] RESEND_API_KEY not set — skipping alert for {search_type} search job #{job_id}")
         return
 
     when = datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
     kind = "Targeted" if search_type == "targeted" else "Full"
 
     body_lines = [
-        f"The Hethersett Grant Agent has been used.",
+        "The Hethersett Grant Agent has been used.",
         "",
         f"Type:    {kind} grant search",
         f"Job:     #{job_id}",
@@ -65,18 +65,31 @@ def send_agent_alert(search_type: str, job_id: int, question: str | None = None)
         "This search calls the Anthropic API and typically costs a few pounds.",
     ]
 
-    msg = EmailMessage()
-    msg["Subject"] = f"Hethersett agent used — {kind.lower()} search (job #{job_id})"
-    msg["From"] = cfg["sender"]
-    msg["To"] = cfg["recipient"]
-    msg.set_content("\n".join(body_lines))
+    payload = json.dumps({
+        "from": cfg["sender"],
+        "to": [cfg["recipient"]],
+        "subject": f"Hethersett agent used — {kind.lower()} search (job #{job_id})",
+        "text": "\n".join(body_lines),
+    }).encode("utf-8")
+
+    req = urllib.request.Request(
+        RESEND_ENDPOINT,
+        data=payload,
+        method="POST",
+        headers={
+            "Authorization": f"Bearer {cfg['api_key']}",
+            "Content-Type": "application/json",
+        },
+    )
 
     try:
-        with smtplib.SMTP(cfg["host"], cfg["port"], timeout=15) as server:
-            server.starttls()
-            server.login(cfg["user"], cfg["password"])
-            server.send_message(msg)
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            resp.read()
         print(f"[alert] Sent usage alert for {search_type} search job #{job_id} to {cfg['recipient']}")
+    except urllib.error.HTTPError as e:
+        # Resend returns a JSON error body — surface it to help diagnose config issues.
+        detail = e.read().decode("utf-8", "replace")
+        print(f"[alert] Resend rejected alert for job #{job_id} (HTTP {e.code}): {detail}")
     except Exception as e:
         # Never let an alert failure affect the search itself.
         print(f"[alert] Failed to send usage alert for job #{job_id}: {e}")
